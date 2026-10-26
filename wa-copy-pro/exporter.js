@@ -233,9 +233,17 @@ const WACopyExporter = (function () {
           line += msg.text;
         }
       }
-      // Other media (Documents, Video, Sticker, Location)
+      // Tracked Documents & Files
+      else if (includeMedia && msg.mediaType === 'Document') {
+        const docName = msg.mediaInfo || 'document.pdf';
+        const docPath = msg.mediaFile || `media/${docName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const sizeStr = msg.fileSize ? ` *(${msg.fileSize})*` : '';
+        line += `📄 **[Document: ${docName}](${docPath})**${sizeStr}`;
+        if (msg.text) line += `\n*Note:* ${msg.text}`;
+      }
+      // Other media (Video, Sticker, Location)
       else if (includeMedia && msg.mediaType) {
-        const icon = msg.mediaType === 'Document' ? '📄' : msg.mediaType === 'Video' ? '🎥' : '📎';
+        const icon = msg.mediaType === 'Video' ? '🎥' : msg.mediaType === 'Sticker' ? '✨' : '📎';
         const info = msg.mediaInfo ? `: ${msg.mediaInfo}` : '';
         line += `${icon} *[${msg.mediaType}${info}]* `;
         if (msg.text) line += msg.text;
@@ -484,12 +492,39 @@ const WACopyExporter = (function () {
           `;
         }
 
+        // Document Card
+        let docHtml = '';
+        if (m.mediaType === 'Document') {
+          const docName = m.mediaInfo || 'document.pdf';
+          const cleanName = docName.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const docPath = m.mediaFile || `media/${cleanName}`;
+          const ext = docName.split('.').pop().toLowerCase();
+          let docIcon = '📄';
+          if (ext === 'pdf') docIcon = '📕';
+          else if (['doc', 'docx'].includes(ext)) docIcon = '📘';
+          else if (['xls', 'xlsx', 'csv'].includes(ext)) docIcon = '📗';
+          else if (['ppt', 'pptx'].includes(ext)) docIcon = '📙';
+          else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) docIcon = '📦';
+          else if (['mp3', 'wav', 'ogg'].includes(ext)) docIcon = '🎵';
+
+          docHtml = `
+            <div class="msg-doc-card">
+              <span class="doc-icon">${docIcon}</span>
+              <div class="doc-details">
+                <a class="doc-name" href="${escapeHtml(docPath)}" download="${escapeHtml(docName)}" target="_blank" title="${escapeHtml(docName)}">
+                  ${escapeHtml(docName)}
+                </a>
+                <span class="doc-meta">${m.fileSize ? escapeHtml(m.fileSize) : ext.toUpperCase() + ' Document'}</span>
+              </div>
+            </div>
+          `;
+        }
+
         // Other Media Badges
         let otherMediaHtml = '';
-        if (m.mediaType && m.mediaType !== 'Image' && !m.mediaType.includes('Voice')) {
+        if (m.mediaType && m.mediaType !== 'Image' && m.mediaType !== 'Document' && !m.mediaType.includes('Voice')) {
           let icon = '📎';
           if (m.mediaType.includes('Video')) icon = '🎥';
-          else if (m.mediaType.includes('Document')) icon = '📄';
           else if (m.mediaType.includes('Sticker')) icon = '✨';
           else if (m.mediaType.includes('Location')) icon = '📍';
 
@@ -523,6 +558,7 @@ const WACopyExporter = (function () {
               ${quotedHtml}
               ${imageHtml}
               ${voiceHtml}
+              ${docHtml}
               ${otherMediaHtml}
               ${textHtml}
               <div class="msg-footer">
@@ -874,6 +910,55 @@ const WACopyExporter = (function () {
 
     [data-theme="dark"] .msg-media-badge { background: rgba(255, 255, 255, 0.08); }
 
+    .msg-doc-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      margin: 6px 0;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      transition: background 0.15s ease;
+      max-width: 380px;
+    }
+    [data-theme="dark"] .msg-doc-card {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .msg-doc-card:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+    [data-theme="dark"] .msg-doc-card:hover {
+      background: rgba(255, 255, 255, 0.09);
+    }
+    .doc-icon {
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .doc-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+    }
+    .doc-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .doc-name:hover {
+      text-decoration: underline;
+      color: var(--accent);
+    }
+    .doc-meta {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+
     .msg-footer {
       display: flex;
       align-items: center;
@@ -1030,6 +1115,8 @@ const WACopyExporter = (function () {
     let voiceIdx = 0;
     let docIdx = 0;
 
+    const usedFileNames = new Set();
+
     for (const msg of chatData.messages) {
       // Images
       if (msg.mediaType === 'Image') {
@@ -1070,11 +1157,23 @@ const WACopyExporter = (function () {
         }
       }
 
-      // Documents
+      // Documents (PDF, Word, Excel, ZIP, etc.)
       if (msg.mediaType === 'Document') {
         docIdx++;
-        const rawName = (msg.mediaInfo || '').replace(/[^a-zA-Z0-9._-]/g, '_') || `document_${docIdx}.pdf`;
+        let rawName = (msg.mediaInfo || '').replace(/[^a-zA-Z0-9._-]/g, '_') || `document_${docIdx}.pdf`;
+        if (usedFileNames.has(rawName.toLowerCase())) {
+          const parts = rawName.split('.');
+          if (parts.length > 1) {
+            const ext = parts.pop();
+            rawName = `${parts.join('.')}_${docIdx}.${ext}`;
+          } else {
+            rawName = `${rawName}_${docIdx}`;
+          }
+        }
+        usedFileNames.add(rawName.toLowerCase());
+
         const filename = `media/${rawName}`;
+        msg.mediaFile = filename;
 
         let bytes = null;
         if (msg.docBytes) {
@@ -1085,6 +1184,11 @@ const WACopyExporter = (function () {
 
         if (bytes && bytes.length > 0) {
           files.push({ name: filename, content: bytes });
+        } else {
+          files.push({
+            name: `${filename}.missing.txt`,
+            content: `Document: ${msg.mediaInfo || 'Document'}\nSize: ${msg.fileSize || 'Unknown'}\nStatus: Media was not cached in this WhatsApp Web session.\nTip: Click the document in WhatsApp Web to load it, then export again!`
+          });
         }
       }
     }

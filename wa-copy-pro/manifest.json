@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Simple WhatsApp Copier (PRO+ for free)",
   "short_name": "Simple WhatsApp Copier",
-  "version": "1.1.0",
-  "description": "Copy or export WhatsApp Web chats with tracked images, voice note transcripts, and AI formatting. 100% free & local.",
+  "version": "1.2.0",
+  "description": "Copy or export WhatsApp Web chats with tracked images, full files (PDF, Word, docs), voice note transcripts, and AI formatting. 100% free & local.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -25,7 +25,8 @@
     "activeTab",
     "clipboardWrite",
     "downloads",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*",
@@ -35,6 +36,12 @@
     "service_worker": "background.js"
   },
   "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["interceptor.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
     {
       "matches": ["https://web.whatsapp.com/*"],
       "js": ["exporter.js", "content.js"],
@@ -48,7 +55,8 @@
         "icons/*",
         "print.html",
         "print.js",
-        "exporter.js"
+        "exporter.js",
+        "interceptor.js"
       ],
       "matches": ["https://web.whatsapp.com/*"]
     }

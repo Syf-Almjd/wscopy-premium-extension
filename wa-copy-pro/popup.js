@@ -79,14 +79,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /**
-   * Ensure content script is injected even if WhatsApp tab was opened before extension reload
+   * Ensure content script & interceptor are injected even if WhatsApp tab was opened before extension reload
    */
   async function ensureContentScript(tabId) {
+    // 1. Ensure main-world interceptor is injected
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['interceptor.js'],
+        world: 'MAIN'
+      });
+    } catch (e) {
+      console.warn('Could not inject interceptor.js into MAIN world:', e);
+    }
+
+    // 2. Check if content script is responding
     try {
       const pong = await chrome.tabs.sendMessage(tabId, { action: 'PING' });
       if (pong && pong.pong) return true;
     } catch (e) {
-      // Inject scripts dynamically
+      // Inject isolated content scripts
       try {
         await chrome.scripting.executeScript({
           target: { tabId },
@@ -96,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           target: { tabId },
           files: ['content.css']
         }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 250));
         return true;
       } catch (err2) {
         console.warn('Script injection failed:', err2);

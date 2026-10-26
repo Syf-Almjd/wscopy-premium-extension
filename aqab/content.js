@@ -2,8 +2,8 @@
  * Simple WhatsApp Copier (PRO+ for free) - Content Script
  * Injected into WhatsApp Web (https://web.whatsapp.com)
  *
- * NOTE: No buttons or floating widgets are injected into WhatsApp Web DOM.
- * All controls are triggered cleanly from the Chrome Extension toolbar popup!
+ * Captures all chat messages, tracked images, full documents (PDFs, Word, Excel, etc.),
+ * voice note transcripts, and formats them for 1-click AI copy or ZIP export.
  */
 
 (function () {
@@ -12,12 +12,97 @@
   if (window.__SWC_LOADED__) return;
   window.__SWC_LOADED__ = true;
 
-  console.log('⚡ Simple WhatsApp Copier (PRO+ for free): Content script loaded');
+  console.log('⚡ Simple WhatsApp Copier (PRO+ for free): Content script ready');
 
   // State
   let isScrapingActive = false;
   let shouldCancelScraping = false;
   let activeProgressElement = null;
+
+  // Intercepted documents registry: key (filename or url) -> { filename, bytes, blob, url, timestamp }
+  const capturedDocsMap = new Map();
+  const allCapturedBlobs = [];
+  const docResolveListeners = new Set();
+
+  /**
+   * Listen for documents and blobs intercepted by interceptor.js in the main world
+   */
+  window.addEventListener('message', async (e) => {
+    if (!e.data || typeof e.data !== 'object') return;
+
+    // 1. Captured document download intent (filename + url)
+    if (e.data.type === 'SWC_DOCUMENT_INTERCEPTED') {
+      const { filename, url } = e.data;
+      if (!url) return;
+
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const arrayBuf = await blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        const entry = {
+          filename: filename || 'document.pdf',
+          bytes,
+          blob,
+          url,
+          timestamp: Date.now()
+        };
+
+        if (filename) {
+          capturedDocsMap.set(filename.trim().toLowerCase(), entry);
+        }
+        capturedDocsMap.set(url, entry);
+        allCapturedBlobs.push(entry);
+
+        console.log('⚡ SWC: Intercepted & cached document:', filename, bytes.length, 'bytes');
+        docResolveListeners.forEach((fn) => fn(entry));
+      } catch (err) {
+        console.warn('SWC: Could not fetch intercepted document URL:', err);
+      }
+    }
+    // 2. Captured blob created via URL.createObjectURL
+    else if (e.data.type === 'SWC_BLOB_CREATED') {
+      const { url, mimeType, size } = e.data;
+      if (!url) return;
+
+      // Only fetch if it might be a document or media
+      const isDocType =
+        mimeType &&
+        (mimeType.includes('pdf') ||
+          mimeType.includes('word') ||
+          mimeType.includes('officedocument') ||
+          mimeType.includes('excel') ||
+          mimeType.includes('sheet') ||
+          mimeType.includes('powerpoint') ||
+          mimeType.includes('presentation') ||
+          mimeType.includes('zip') ||
+          mimeType.includes('tar') ||
+          mimeType.includes('text/plain') ||
+          mimeType.includes('csv') ||
+          mimeType.includes('octet-stream'));
+
+      if (isDocType || size > 10240) {
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const arrayBuf = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuf);
+          const entry = {
+            filename: '',
+            bytes,
+            blob,
+            url,
+            mimeType,
+            size,
+            timestamp: Date.now()
+          };
+          capturedDocsMap.set(url, entry);
+          allCapturedBlobs.push(entry);
+          docResolveListeners.forEach((fn) => fn(entry));
+        } catch (err) {}
+      }
+    }
+  });
 
   // Configuration passed from popup
   const currentConfig = {
@@ -39,6 +124,21 @@
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   /**
+   * Simulate trusted click on DOM element to trigger React synthetic events
+   */
+  function simulateClick(el) {
+    if (!el) return;
+    ['mousedown', 'mouseup', 'click'].forEach((type) => {
+      el.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true, buttons: 1 }));
+    });
+    if (typeof el.click === 'function') {
+      try {
+        el.click();
+      } catch (e) {}
+    }
+  }
+
+  /**
    * Show toast feedback on WhatsApp Web
    */
   function showToast(message, icon = '✅') {
@@ -51,7 +151,7 @@
     }
     toast.innerHTML = `<span style="font-size: 18px;">${icon}</span> <span>${message}</span>`;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3500);
+    setTimeout(() => toast.classList.remove('show'), 3800);
   }
 
   function isChatOpen() {
@@ -128,8 +228,7 @@
   async function fetchBlobData(blobUrl) {
     if (!blobUrl) return null;
     try {
-      // If already a data url
-      if (blobUrl.startsWith('data:image')) {
+      if (blobUrl.startsWith('data:image') || blobUrl.startsWith('data:application')) {
         return {
           dataUrl: blobUrl,
           bytes: dataUrlToBytes(blobUrl),
@@ -188,6 +287,151 @@
         console.warn('Whisper API transcription error:', err);
       }
     }
+    return null;
+  }
+
+  /**
+   * Comprehensive Document & File Detector (PDF, Word, Excel, ZIP, etc.)
+   */
+  function detectDocument(el) {
+    // 1. Icon check
+    const docIcon = el.querySelector(
+      '[data-icon*="doc"], [data-icon="document"], [data-testid="document-thumb"], [data-testid*="doc"], [data-icon="doc-pdf"], [data-icon="doc-word"], [data-icon="doc-excel"], [data-icon="doc-ppt"], [data-icon="doc-generic"], [data-icon="doc-zip"], [data-icon="audio-file"], [data-icon="audio-download"]'
+    );
+
+    // 2. Metadata pattern in innerText (e.g. "2 pages • 145 kB • pdf" or "1.2 MB • docx")
+    const elText = el.innerText || '';
+    const metaMatch = elText.match(/\b(\d+(?:\.\d+)?\s*(?:kB|MB|GB|B))\s*•\s*([a-z0-9]{2,5})\b/i);
+
+    let filename = '';
+    const extRegex = /\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|tar|gz|txt|csv|rtf|epub|odt|ods|odp|pages|numbers|key|mp3|wav|ogg|apk)$/i;
+
+    // Scan title attributes
+    const titleNodes = el.querySelectorAll('span[title], div[title], a[title]');
+    for (const node of titleNodes) {
+      const t = (node.getAttribute('title') || '').trim();
+      if (extRegex.test(t)) {
+        filename = t;
+        break;
+      }
+    }
+
+    // Scan text nodes
+    if (!filename) {
+      const textNodes = el.querySelectorAll('span[dir="auto"], span.selectable-text, .copyable-text span, div[role="button"] span');
+      for (const t of textNodes) {
+        const txt = (t.textContent || t.innerText || '').trim();
+        if (extRegex.test(txt) && txt.length < 250) {
+          filename = txt;
+          break;
+        }
+      }
+    }
+
+    // If icon or metadata indicates a document
+    if (docIcon || metaMatch || extRegex.test(filename)) {
+      let sizeText = '';
+      if (metaMatch) {
+        sizeText = metaMatch[1];
+      } else {
+        const sizeMatch = elText.match(/\b\d+(\.\d+)?\s*(kB|MB|GB|B)\b/i);
+        if (sizeMatch) sizeText = sizeMatch[0];
+      }
+
+      const detectedExt = metaMatch ? metaMatch[2].toLowerCase() : 'pdf';
+      if (!filename) {
+        filename = `document.${detectedExt}`;
+      } else if (!filename.includes('.')) {
+        filename = `${filename}.${detectedExt}`;
+      }
+
+      return {
+        filename,
+        sizeText,
+        detectedExt
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Helper: Locate document download button or card trigger inside a message element
+   */
+  function getDocumentDownloadTrigger(el) {
+    if (!el) return null;
+    const dlIcon = el.querySelector(
+      'span[data-icon="download"], span[data-icon="document-download"], [data-testid="document-download"], span[data-icon="audio-download"]'
+    );
+    if (dlIcon) {
+      return dlIcon.closest('button, [role="button"]') || dlIcon;
+    }
+
+    const docCard =
+      el.querySelector('[data-testid="document-thumb"]')?.closest('[role="button"]') ||
+      el.querySelector('div[role="button"][title]');
+    if (docCard) return docCard;
+
+    return null;
+  }
+
+  /**
+   * Fetch Document bytes (from cache, direct blob, or triggering download)
+   */
+  async function fetchDocumentBytes(msg, el, timeoutMs = 3800) {
+    if (msg.docBytes && msg.docBytes.length > 0) return msg.docBytes;
+
+    const key = (msg.mediaInfo || '').trim().toLowerCase();
+
+    // 1. Check in-memory map
+    let cached = capturedDocsMap.get(key);
+    if (cached && cached.bytes) {
+      msg.docBytes = cached.bytes;
+      msg.docBlob = cached.blob;
+      return cached.bytes;
+    }
+
+    // 2. Check for anchor tag with blob url
+    const blobLink = el?.querySelector('a[href*="blob:"]');
+    if (blobLink && blobLink.href) {
+      const data = await fetchBlobData(blobLink.href);
+      if (data && data.bytes) {
+        msg.docBytes = data.bytes;
+        msg.docBlob = data.blob;
+        capturedDocsMap.set(key, { filename: msg.mediaInfo, bytes: data.bytes, blob: data.blob, url: blobLink.href });
+        return data.bytes;
+      }
+    }
+
+    // 3. Trigger download via DOM element
+    const trigger = getDocumentDownloadTrigger(el);
+    if (trigger) {
+      simulateClick(trigger);
+
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        await sleep(150);
+        cached = capturedDocsMap.get(key);
+        if (cached && cached.bytes) {
+          msg.docBytes = cached.bytes;
+          msg.docBlob = cached.blob;
+          return cached.bytes;
+        }
+
+        // Check recent blobs
+        if (allCapturedBlobs.length > 0) {
+          const last = allCapturedBlobs[allCapturedBlobs.length - 1];
+          if (last && !last.assigned && Date.now() - last.timestamp < timeoutMs && last.bytes) {
+            last.assigned = true;
+            msg.docBytes = last.bytes;
+            msg.docBlob = last.blob;
+            capturedDocsMap.set(key, last);
+            return last.bytes;
+          }
+        }
+      }
+    }
+
     return null;
   }
 
@@ -255,63 +499,76 @@
       quoted = { sender: qSender, text: qText };
     }
 
-    // Media & Image Detection
+    // Media, Document & Image Detection
     let mediaType = null;
     let mediaInfo = null;
     let mediaSrc = null;
     let audioSrc = null;
-    let docSrc = null;
+    let docBytes = null;
+    let docBlob = null;
+    let fileSize = null;
     let transcript = null;
 
-    // 1. Image Check
-    const imgEl = el.querySelector('img[src*="blob:"], [data-testid="image-thumb"] img, img[src*="https://"], img[src*="data:image"]');
-    if (imgEl && !imgEl.classList.contains('emoji') && !imgEl.closest('[data-testid*="sticker"]')) {
-      mediaType = 'Image';
-      mediaSrc = imgEl.src;
+    // 1. Document Check (PDF, Word, Excel, ZIP, etc.)
+    const docInfo = detectDocument(el);
+    if (docInfo) {
+      mediaType = 'Document';
+      mediaInfo = docInfo.filename;
+      fileSize = docInfo.sizeText;
+
+      const cached = capturedDocsMap.get(docInfo.filename.toLowerCase());
+      if (cached) {
+        docBytes = cached.bytes;
+        docBlob = cached.blob;
+      }
     }
 
-    // Check background-image url if not in img
+    // 2. Image Check
     if (!mediaType) {
-      const bgDiv = el.querySelector('div[style*="background-image"]');
-      if (bgDiv) {
-        const m = bgDiv.getAttribute('style').match(/background-image:\s*url\(['"]?(.*?)['"]?\)/);
-        if (m && m[1] && !m[1].includes('.svg')) {
-          mediaType = 'Image';
-          mediaSrc = m[1];
+      const imgEl = el.querySelector('img[src*="blob:"], [data-testid="image-thumb"] img, img[src*="https://"], img[src*="data:image"]');
+      if (imgEl && !imgEl.classList.contains('emoji') && !imgEl.closest('[data-testid*="sticker"]')) {
+        mediaType = 'Image';
+        mediaSrc = imgEl.src;
+      }
+
+      if (!mediaType) {
+        const bgDiv = el.querySelector('div[style*="background-image"]');
+        if (bgDiv) {
+          const m = bgDiv.getAttribute('style').match(/background-image:\s*url\(['"]?(.*?)['"]?\)/);
+          if (m && m[1] && !m[1].includes('.svg')) {
+            mediaType = 'Image';
+            mediaSrc = m[1];
+          }
         }
       }
     }
 
-    // 2. Voice Note / Audio Check
-    const audioPlay = el.querySelector('[data-testid="audio-play"], [data-testid="ptt-play"], audio');
-    if (audioPlay) {
-      mediaType = 'Voice Note';
-      const durEl = el.querySelector('span[data-testid="audio-duration"]');
-      mediaInfo = durEl ? durEl.innerText.trim() : '0:15';
+    // 3. Voice Note / Audio Check
+    if (!mediaType) {
+      const audioPlay = el.querySelector('[data-testid="audio-play"], [data-testid="ptt-play"], audio');
+      if (audioPlay) {
+        mediaType = 'Voice Note';
+        const durEl = el.querySelector('span[data-testid="audio-duration"]');
+        mediaInfo = durEl ? durEl.innerText.trim() : '0:15';
 
-      const audioTag = el.querySelector('audio');
-      if (audioTag && audioTag.src) audioSrc = audioTag.src;
+        const audioTag = el.querySelector('audio');
+        if (audioTag && audioTag.src) audioSrc = audioTag.src;
 
-      const transcriptEl = el.querySelector(
-        '[data-testid="audio-transcript"], .voice-note-transcript, span[data-testid="voice-transcript"]'
-      );
-      if (transcriptEl) {
-        transcript = transcriptEl.innerText.trim();
+        const transcriptEl = el.querySelector(
+          '[data-testid="audio-transcript"], .voice-note-transcript, span[data-testid="voice-transcript"]'
+        );
+        if (transcriptEl) {
+          transcript = transcriptEl.innerText.trim();
+        }
+      } else if (el.querySelector('video, [data-testid="video-thumb"]')) {
+        mediaType = 'Video';
+      } else if (el.querySelector('[data-testid="sticker"]')) {
+        mediaType = 'Sticker';
+      } else if (el.querySelector('[data-testid="location"]')) {
+        mediaType = 'Location';
+      } else if (el.querySelector('[data-testid="vcard"]')) {
+        mediaType = 'Contact Card';
       }
-    } else if (el.querySelector('video, [data-testid="video-thumb"]')) {
-      mediaType = 'Video';
-    } else if (el.querySelector('[data-testid="document-thumb"]')) {
-      mediaType = 'Document';
-      const docTitle = el.querySelector('span[title], div[title]')?.getAttribute('title');
-      if (docTitle) mediaInfo = docTitle;
-      const docLink = el.querySelector('a[href*="blob:"]');
-      if (docLink) docSrc = docLink.href;
-    } else if (el.querySelector('[data-testid="sticker"]')) {
-      mediaType = 'Sticker';
-    } else if (el.querySelector('[data-testid="location"]')) {
-      mediaType = 'Location';
-    } else if (el.querySelector('[data-testid="vcard"]')) {
-      mediaType = 'Contact Card';
     }
 
     // Reactions
@@ -335,11 +592,14 @@
       quoted,
       mediaType,
       mediaInfo,
+      fileSize,
       mediaSrc,
       audioSrc,
-      docSrc,
+      docBytes,
+      docBlob,
       transcript,
-      reactions
+      reactions,
+      _domElement: el
     };
   }
 
@@ -348,6 +608,9 @@
    */
   async function scrapeChat(rangeMode, onProgress = null) {
     if (!isChatOpen()) throw new Error('Please open a WhatsApp chat first!');
+
+    // Enable download suppression in main world so batch document clicks don't spam browser Downloads
+    window.postMessage({ type: 'SWC_SET_SUPPRESS_DOWNLOAD', suppress: true }, '*');
 
     const container = getMessagesScrollContainer();
     const scrapedMap = new Map();
@@ -375,7 +638,7 @@
           if (msg && !scrapedMap.has(msg.id)) {
             scrapedMap.set(msg.id, msg);
 
-            // IMMEDIATELY fetch media blob before element unmounts!
+            // 1. Immediately fetch Image blob
             if (msg.mediaType === 'Image' && msg.mediaSrc && currentConfig.trackImages) {
               fetchBlobData(msg.mediaSrc).then((data) => {
                 if (data) {
@@ -384,7 +647,9 @@
                   msg.mimeType = data.mimeType;
                 }
               });
-            } else if (msg.mediaType === 'Voice Note' && msg.audioSrc && currentConfig.transcribeVoice) {
+            }
+            // 2. Immediately fetch Voice Note blob
+            else if (msg.mediaType === 'Voice Note' && msg.audioSrc && currentConfig.transcribeVoice) {
               fetchBlobData(msg.audioSrc).then((data) => {
                 if (data) {
                   msg.audioBytes = data.bytes;
@@ -395,10 +660,10 @@
                   }
                 }
               });
-            } else if (msg.mediaType === 'Document' && msg.docSrc) {
-              fetchBlobData(msg.docSrc).then((data) => {
-                if (data) msg.docBytes = data.bytes;
-              });
+            }
+            // 3. Immediately trigger Document fetch while mounted in DOM
+            else if (msg.mediaType === 'Document' && !msg.docBytes) {
+              fetchDocumentBytes(msg, el);
             }
           }
         }
@@ -448,10 +713,31 @@
       });
     }
 
-    // Wait a brief moment to ensure in-flight media fetches resolve
-    await sleep(400);
+    // Wait for in-flight document downloads to complete
+    const pendingDocs = messages.filter((m) => m.mediaType === 'Document' && !m.docBytes);
+    if (pendingDocs.length > 0) {
+      const waitStart = Date.now();
+      while (Date.now() - waitStart < 2500) {
+        let missingCount = 0;
+        for (const doc of pendingDocs) {
+          const key = (doc.mediaInfo || '').trim().toLowerCase();
+          const cached = capturedDocsMap.get(key);
+          if (cached && cached.bytes) {
+            doc.docBytes = cached.bytes;
+            doc.docBlob = cached.blob;
+          } else {
+            missingCount++;
+          }
+        }
+        if (missingCount === 0) break;
+        await sleep(200);
+      }
+    }
 
-    // Number images sequentially for media links
+    // Restore native download behavior
+    window.postMessage({ type: 'SWC_SET_SUPPRESS_DOWNLOAD', suppress: false }, '*');
+
+    // Number images & voice notes and link captured document bytes
     let imgCounter = 0;
     let voiceCounter = 0;
     for (const m of messages) {
@@ -462,6 +748,14 @@
       } else if (m.mediaType === 'Voice Note') {
         voiceCounter++;
         m.mediaFile = `media/voice_note_${voiceCounter}.ogg`;
+      } else if (m.mediaType === 'Document' && m.mediaInfo) {
+        const cached = capturedDocsMap.get(m.mediaInfo.trim().toLowerCase());
+        if (cached && cached.bytes) {
+          m.docBytes = cached.bytes;
+          m.docBlob = cached.blob;
+        }
+        const cleanName = m.mediaInfo.replace(/[^a-zA-Z0-9._-]/g, '_');
+        m.mediaFile = `media/${cleanName}`;
       }
     }
 
@@ -480,7 +774,7 @@
   }
 
   /**
-   * Progress Modal (Shows while virtual scrolling)
+   * Progress Modal (Shows while virtual scrolling & downloading media)
    */
   function showProgressModal(onStopCallback) {
     if (activeProgressElement) activeProgressElement.remove();
@@ -492,10 +786,10 @@
         <div class="swc-spinner"></div>
         <div>
           <div class="swc-progress-num" id="swcProgressNum">0</div>
-          <div style="font-size: 13px; color: var(--swc-text-muted);">Messages Collected So Far</div>
+          <div style="font-size: 13px; color: var(--swc-text-muted);" id="swcProgressLabel">Messages Collected</div>
         </div>
         <p style="font-size: 11.5px; color: var(--swc-text-muted); max-width: 250px;">
-          Scrolling through WhatsApp Web locally on your device...
+          Scrolling through WhatsApp Web & loading media locally on your device...
         </p>
         <button class="swc-btn-stop" id="swcBtnStop">Stop & Export Now</button>
       </div>
@@ -510,9 +804,13 @@
     });
 
     return {
-      updateCount: (num) => {
-        const el = overlay.querySelector('#swcProgressNum');
-        if (el) el.textContent = num;
+      updateCount: (num, label) => {
+        const elNum = overlay.querySelector('#swcProgressNum');
+        if (elNum) elNum.textContent = num;
+        if (label) {
+          const elLabel = overlay.querySelector('#swcProgressLabel');
+          if (elLabel) elLabel.textContent = label;
+        }
       },
       close: () => {
         if (activeProgressElement) {
@@ -538,8 +836,8 @@
     }
 
     try {
-      const chatData = await scrapeChat(currentConfig.rangeMode, (count) => {
-        if (progress) progress.updateCount(count);
+      const chatData = await scrapeChat(currentConfig.rangeMode, (count, label) => {
+        if (progress) progress.updateCount(count, label);
       });
 
       if (progress) progress.close();
@@ -577,10 +875,10 @@
       } else if (actionType === 'export') {
         switch (format) {
           case 'zip': {
-            showToast('Packaging Chat & all Media files into ZIP...', '⏳');
+            showToast('Packaging Chat & all Media/Files into ZIP...', '⏳');
             const zipBlob = await WACopyExporter.toZIP(chatData, options);
             WACopyExporter.downloadFile(zipBlob, `${filenameBase}_Bundle.zip`, 'application/zip');
-            showToast(`Downloaded ZIP Bundle (${chatData.messages.length} msgs + media)!`, '📦');
+            showToast(`Downloaded ZIP Bundle (${chatData.messages.length} msgs + files)!`, '📦');
             break;
           }
           case 'md': {
@@ -592,7 +890,7 @@
           case 'html': {
             const html = WACopyExporter.toHTML(chatData, options);
             WACopyExporter.downloadFile(html, `${filenameBase}.html`, 'text/html');
-            showToast(`Exported as Offline HTML Viewer with images!`, '🌐');
+            showToast(`Exported as Offline HTML Viewer!`, '🌐');
             break;
           }
           case 'pdf': {
@@ -624,6 +922,8 @@
       if (progress) progress.close();
       console.error('Simple WhatsApp Copier Error:', err);
       showToast(`Error: ${err.message}`, '❌');
+    } finally {
+      window.postMessage({ type: 'SWC_SET_SUPPRESS_DOWNLOAD', suppress: false }, '*');
     }
   }
 
