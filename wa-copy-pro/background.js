@@ -1,20 +1,21 @@
 /**
- * WACopy Pro - Background Service Worker
+ * Simple WhatsApp Copier (PRO+ for free) - Background Service Worker
  */
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('⚡ WACopy Pro successfully installed!');
+    console.log('⚡ Simple WhatsApp Copier (PRO+ for free) installed!');
   }
 });
 
-// Handle print window requests from content script
+// Handle print tab requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'OPEN_PRINT') {
+  if (request.action === 'OPEN_PRINT' || request.type === 'wacopy-print') {
+    const html = request.html;
     const storageApi = chrome.storage.session || chrome.storage.local;
-    storageApi.set({ printHtml: request.html }, () => {
+    storageApi.set({ printHtml: html }, () => {
       chrome.tabs.create({ url: chrome.runtime.getURL('print.html') });
-      sendResponse({ success: true });
+      sendResponse({ success: true, ok: true });
     });
     return true;
   }

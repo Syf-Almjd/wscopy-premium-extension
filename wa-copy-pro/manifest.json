@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "WACopy Pro - WhatsApp Chat Exporter & AI Copy",
-  "version": "1.0.0",
-  "description": "100% Free & Unlimited WhatsApp Web Chat Exporter. Copy to ChatGPT / Claude or export to Markdown, PDF, HTML, TXT, CSV, JSON.",
+  "name": "Simple WhatsApp Copier (PRO+ for free)",
+  "short_name": "Simple WhatsApp Copier",
+  "version": "1.1.0",
+  "description": "Copy or export WhatsApp Web chats with tracked images, voice note transcripts, and AI formatting. 100% free & local.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -11,7 +12,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "WACopy Pro",
+    "default_title": "Simple WhatsApp Copier (PRO+ for free)",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -27,7 +28,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://web.whatsapp.com/*"
+    "https://web.whatsapp.com/*",
+    "https://api.groq.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -45,7 +47,8 @@
       "resources": [
         "icons/*",
         "print.html",
-        "print.js"
+        "print.js",
+        "exporter.js"
       ],
       "matches": ["https://web.whatsapp.com/*"]
     }
@@ -53,7 +56,7 @@
   "commands": {
     "toggle-panel": {
       "suggested_key": { "default": "Alt+Shift+C" },
-      "description": "Open / close WACopy Pro modal"
+      "description": "Toggle Simple WhatsApp Copier"
     }
   }
 }

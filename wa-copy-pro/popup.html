@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WACopy Pro</title>
+  <title>Simple WhatsApp Copier</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -13,8 +13,8 @@
       <div class="brand">
         <div class="brand-icon">⚡</div>
         <div class="brand-text">
-          <h1>WACopy Pro</h1>
-          <span class="pro-tag">FREE &bull; UNLIMITED</span>
+          <h1>Simple WhatsApp Copier</h1>
+          <span class="pro-tag">PRO+ FOR FREE</span>
         </div>
       </div>
       <button class="icon-btn" id="openTabBtn" title="Open or Switch to WhatsApp Web">
@@ -33,14 +33,14 @@
       </div>
     </div>
 
-    <!-- Active Chat Controls (Shown when chat is open) -->
+    <!-- Active Chat Controls -->
     <div id="activeChatSection" style="display: none;">
       <!-- Quick AI Action -->
       <button class="primary-ai-btn" id="popupQuickCopyBtn">
         <span class="btn-icon">📋</span>
         <span class="btn-text">
           <strong>Copy for ChatGPT / Claude</strong>
-          <small>Instant clean Markdown to clipboard</small>
+          <small>Includes tracked images & voice note transcripts</small>
         </span>
       </button>
 
@@ -54,18 +54,6 @@
           <button class="pill-btn" data-val="2000">2,000</button>
           <button class="pill-btn" data-val="all">All</button>
         </div>
-      </div>
-
-      <!-- AI Prompt Template -->
-      <div class="field-group">
-        <label class="field-label">Prepend AI Prompt</label>
-        <select class="custom-select" id="popupPromptSelect">
-          <option value="none">No Prompt (Raw Chat Only)</option>
-          <option value="summary">📝 Summarize discussion & next steps</option>
-          <option value="action_items">📋 Extract action items & assignees</option>
-          <option value="meeting_notes">📑 Convert to meeting notes</option>
-          <option value="qa_insights">💡 Key questions & answers</option>
-        </select>
       </div>
 
       <!-- Export Formats Grid -->
@@ -84,6 +72,10 @@
             <span class="chip-icon">🖨️</span>
             <span class="chip-name">PDF</span>
           </button>
+          <button class="export-chip" data-fmt="zip">
+            <span class="chip-icon">📦</span>
+            <span class="chip-name">ZIP (Media)</span>
+          </button>
           <button class="export-chip" data-fmt="txt">
             <span class="chip-icon">📄</span>
             <span class="chip-name">Plain Text</span>
@@ -92,16 +84,12 @@
             <span class="chip-icon">📊</span>
             <span class="chip-name">CSV</span>
           </button>
-          <button class="export-chip" data-fmt="json">
-            <span class="chip-icon">🗄️</span>
-            <span class="chip-name">JSON</span>
-          </button>
         </div>
       </div>
 
       <!-- In-Page Studio Launcher -->
       <button class="secondary-btn" id="openInPageModalBtn">
-        <span>Open In-Page Studio on WhatsApp</span>
+        <span>Open In-Page Studio (Full Options)</span>
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
           <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42 5.43 5.43H5v2z"/>
         </svg>
@@ -118,7 +106,7 @@
 
     <!-- Footer -->
     <footer class="popup-footer">
-      <span>100% Client-Side &bull; Zero Server Uploads &bull; Private</span>
+      <span>100% Client-Side &bull; Images Tracked &bull; Voice Transcripts</span>
     </footer>
   </div>
 

@@ -1,28 +1,30 @@
 /**
- * WACopy Pro - Exporter Module
- * Handles formatting WhatsApp chats into Markdown, Plain Text, HTML, CSV, JSON, and PDF
+ * Simple WhatsApp Copier (PRO+ for free) - Exporter Module
+ * Features:
+ * - Markdown, HTML, PDF, TXT, CSV, JSON formatters
+ * - In-place Image tracking (embed in chat, preview in HTML, bundle in ZIP)
+ * - Voice Note Transcripts with disclaimer: "(AI-generated from voice, may contain errors)"
+ * - Pure JavaScript zero-dependency ZIP archive creator (bundles chat + media)
  */
 
 const WACopyExporter = (function () {
   'use strict';
 
-  // AI Prompt templates
+  // AI Prompt templates for 1-click LLM workflows
   const AI_PROMPTS = {
     none: '',
     summary:
-      'Please analyze and summarize the following WhatsApp conversation. Highlight key topics, agreements reached, unresolved questions, and next steps.\n\n---\n\n',
+      'Please analyze and summarize the following WhatsApp conversation. Highlight the key points, decisions, agreements, and next steps.\n\n---\n\n',
     action_items:
-      'Extract all action items, tasks, deadlines, and assignees from this WhatsApp conversation into a prioritized bulleted list.\n\n---\n\n',
+      'Extract all action items, tasks, deadlines, and assignees from this WhatsApp conversation into a prioritized checklist.\n\n---\n\n',
     meeting_notes:
-      'Convert this WhatsApp chat transcript into structured meeting minutes with attendees, main discussion points, decisions made, and follow-up tasks.\n\n---\n\n',
+      'Convert this WhatsApp chat transcript into structured meeting minutes with participants, discussion points, and resolutions.\n\n---\n\n',
     qa_insights:
-      'Review this WhatsApp conversation and extract the most valuable insights, answers given, and reference links shared.\n\n---\n\n',
-    sentiment:
-      'Analyze the tone, sentiment, and relationship dynamics in this WhatsApp conversation. Note any escalation, agreement, or consensus.\n\n---\n\n'
+      'Extract the most important questions, answers, and shared recommendations from this WhatsApp conversation.\n\n---\n\n'
   };
 
   /**
-   * Escape CSV field per RFC 4180
+   * Escape CSV field (RFC 4180)
    */
   function escapeCSV(field) {
     if (field === null || field === undefined) return '""';
@@ -34,7 +36,125 @@ const WACopyExporter = (function () {
   }
 
   /**
+   * Helper: Escape HTML strings
+   */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Pure JS zero-dependency ZIP archiver (STORE mode, 100% compatible)
+   */
+  function createZip(files) {
+    const parts = [];
+    const central = [];
+    let offset = 0;
+
+    function toBytes(data) {
+      if (typeof data === 'string') return new TextEncoder().encode(data);
+      if (data instanceof Uint8Array) return data;
+      if (data instanceof ArrayBuffer) return new Uint8Array(data);
+      return new Uint8Array(0);
+    }
+
+    function crc32(buf) {
+      let crc = -1;
+      for (let i = 0; i < buf.length; i++) {
+        let b = buf[i];
+        for (let j = 0; j < 8; j++) {
+          crc = (crc >>> 1) ^ (((crc ^ b) & 1) ? 0xEDB88320 : 0);
+          b >>>= 1;
+        }
+      }
+      return (crc ^ -1) >>> 0;
+    }
+
+    for (const f of files) {
+      const data = toBytes(f.content);
+      const nameBytes = new TextEncoder().encode(f.name);
+      const crc = crc32(data);
+      const size = data.length;
+
+      // Local File Header
+      const local = new Uint8Array(30 + nameBytes.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true); // version
+      lv.setUint16(6, 0, true);  // flags
+      lv.setUint16(8, 0, true);  // compression = STORE
+      lv.setUint16(10, 0, true); // mod time
+      lv.setUint16(12, 0, true); // mod date
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true); // compressed size
+      lv.setUint32(22, size, true); // uncompressed size
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+
+      parts.push(local, data);
+
+      // Central Directory Header
+      const cd = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cd.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, 0, true);
+      cv.setUint16(14, 0, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      cd.set(nameBytes, 46);
+
+      central.push(cd);
+      offset += local.length + data.length;
+    }
+
+    const centralStart = offset;
+    let centralSize = 0;
+    for (const c of central) centralSize += c.length;
+
+    // End of Central Directory Record
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, centralStart, true);
+    ev.setUint16(20, 0, true);
+
+    const all = [...parts, ...central, eocd];
+    const total = all.reduce((sum, b) => sum + b.length, 0);
+    const result = new Uint8Array(total);
+    let pos = 0;
+    for (const b of all) {
+      result.set(b, pos);
+      pos += b.length;
+    }
+    return new Blob([result], { type: 'application/zip' });
+  }
+
+  /**
    * Format chat data to Markdown (.md)
+   * Tracks images right where they occurred and labels voice note transcripts
    */
   function toMarkdown(chatData, options = {}) {
     const {
@@ -44,27 +164,30 @@ const WACopyExporter = (function () {
       includeSenders = true,
       includeMedia = true,
       includeQuotes = true,
-      includeReactions = true
+      includeReactions = true,
+      embedImages = false,
+      useRelativePaths = true
     } = options;
 
     let output = '';
 
-    // Prepend AI prompt if selected
     if (promptType === 'custom' && customPrompt.trim()) {
       output += `${customPrompt.trim()}\n\n---\n\n`;
     } else if (AI_PROMPTS[promptType]) {
       output += AI_PROMPTS[promptType];
     }
 
-    // Chat Header
     output += `# WhatsApp Chat: ${chatData.chatTitle || 'Conversation'}\n\n`;
     output += `- **Total Messages:** ${chatData.messages.length}\n`;
     if (chatData.dateRange?.start && chatData.dateRange?.end) {
       output += `- **Date Range:** ${chatData.dateRange.start} — ${chatData.dateRange.end}\n`;
     }
     output += `- **Exported At:** ${new Date().toLocaleString()}\n`;
-    output += `- **Exported with:** WACopy Pro (Free Edition)\n\n`;
+    output += `- **Tool:** Simple WhatsApp Copier (PRO+ for free)\n\n`;
     output += `---\n\n`;
+
+    let imageCounter = 0;
+    let voiceCounter = 0;
 
     for (const msg of chatData.messages) {
       let line = '';
@@ -78,23 +201,49 @@ const WACopyExporter = (function () {
         line += `**${sender}**: `;
       }
 
-      // Handle Quoted message
+      // Quoted reply context
       if (includeQuotes && msg.quoted) {
-        line += `\n> ↩️ **${msg.quoted.sender || 'Quote'}**: ${msg.quoted.text.replace(/\n/g, ' ')}\n> \n`;
+        line += `\n> ↩️ **${msg.quoted.sender || 'Reply'}**: ${msg.quoted.text.replace(/\n/g, ' ')}\n> \n`;
         if (includeTimestamps && msg.timestamp) line += `[${msg.timestamp}] `;
         if (includeSenders) line += `**${msg.isOutgoing ? 'You' : (msg.sender || 'Unknown')}**: `;
       }
 
-      // Main message text
-      let bodyText = msg.text || '';
-
-      // Media indicator
-      if (includeMedia && msg.mediaType) {
-        const mediaTag = `*[${msg.mediaType}${msg.mediaInfo ? ': ' + msg.mediaInfo : ''}]*`;
-        bodyText = bodyText ? `${mediaTag} ${bodyText}` : mediaTag;
+      // Tracked Images
+      if (includeMedia && msg.mediaType === 'Image') {
+        imageCounter++;
+        const filename = msg.mediaFile || `media/image_${imageCounter}.jpg`;
+        const caption = msg.text ? ` - ${msg.text}` : '';
+        const imgSrc = embedImages && msg.dataUrl ? msg.dataUrl : (useRelativePaths ? filename : (msg.mediaSrc || filename));
+        line += `\n\n🖼️ ![Image #${imageCounter}${caption}](${imgSrc})\n`;
+        if (msg.text) {
+          line += `*Caption:* ${msg.text}\n`;
+        }
       }
+      // Tracked Voice Notes with Transcription
+      else if (includeMedia && msg.mediaType && msg.mediaType.includes('Voice')) {
+        voiceCounter++;
+        const dur = msg.mediaInfo || 'Audio';
+        line += `🎙️ *[Voice Message (${dur})]*\n`;
 
-      line += bodyText || '*(empty message)*';
+        if (msg.transcript) {
+          line += `> ⚠️ **Voice Note Transcript (AI-generated from voice, may contain errors):**\n`;
+          line += `> "${msg.transcript.replace(/\n/g, '\n> ')}"\n`;
+        }
+        if (msg.text) {
+          line += msg.text;
+        }
+      }
+      // Other media (Documents, Video, Sticker, Location)
+      else if (includeMedia && msg.mediaType) {
+        const icon = msg.mediaType === 'Document' ? '📄' : msg.mediaType === 'Video' ? '🎥' : '📎';
+        const info = msg.mediaInfo ? `: ${msg.mediaInfo}` : '';
+        line += `${icon} *[${msg.mediaType}${info}]* `;
+        if (msg.text) line += msg.text;
+      }
+      // Standard Text Message
+      else {
+        line += msg.text || '*(empty message)*';
+      }
 
       // Reactions
       if (includeReactions && msg.reactions && msg.reactions.length > 0) {
@@ -124,6 +273,9 @@ const WACopyExporter = (function () {
     output += `Total Messages: ${chatData.messages.length}\n`;
     output += `=======================================================\n\n`;
 
+    let imgCount = 0;
+    let voiceCount = 0;
+
     for (const msg of chatData.messages) {
       let line = '';
 
@@ -140,19 +292,28 @@ const WACopyExporter = (function () {
         line += `[Quoting ${msg.quoted.sender || 'User'}: "${msg.quoted.text.replace(/\n/g, ' ')}"] `;
       }
 
-      let body = msg.text || '';
-      if (includeMedia && msg.mediaType) {
-        const media = `<${msg.mediaType}${msg.mediaInfo ? ': ' + msg.mediaInfo : ''}>`;
-        body = body ? `${media} ${body}` : media;
+      if (includeMedia && msg.mediaType === 'Image') {
+        imgCount++;
+        line += `<Image #${imgCount}${msg.mediaFile ? ': ' + msg.mediaFile : ''}> `;
+        if (msg.text) line += `(Caption: ${msg.text})`;
+      } else if (includeMedia && msg.mediaType && msg.mediaType.includes('Voice')) {
+        voiceCount++;
+        line += `<Voice Message #${voiceCount} (${msg.mediaInfo || 'Audio'})> `;
+        if (msg.transcript) {
+          line += `\n   [Voice Transcript (AI-generated from voice, may contain errors): "${msg.transcript}"]`;
+        }
+        if (msg.text) line += ` ${msg.text}`;
+      } else if (includeMedia && msg.mediaType) {
+        line += `<${msg.mediaType}${msg.mediaInfo ? ': ' + msg.mediaInfo : ''}> ${msg.text || ''}`;
+      } else {
+        line += msg.text || '';
       }
-
-      line += body || '<empty>';
 
       if (includeReactions && msg.reactions && msg.reactions.length > 0) {
         line += ` {Reactions: ${msg.reactions.join(' ')}}`;
       }
 
-      output += `${line}\n`;
+      output += `${line.trim()}\n`;
     }
 
     return output;
@@ -170,9 +331,12 @@ const WACopyExporter = (function () {
       'sender',
       'direction',
       'message',
+      'media_type',
+      'media_file',
+      'voice_transcript',
+      'voice_transcript_warning',
       'reply_to_sender',
       'reply_to_text',
-      'media_type',
       'reactions'
     ];
 
@@ -187,9 +351,12 @@ const WACopyExporter = (function () {
         msg.isOutgoing ? 'You' : (msg.sender || ''),
         msg.isOutgoing ? 'Outgoing' : 'Incoming',
         msg.text || '',
+        msg.mediaType || '',
+        msg.mediaFile || '',
+        msg.transcript || '',
+        msg.transcript ? 'AI-generated from voice (may contain errors)' : '',
         msg.quoted?.sender || '',
         msg.quoted?.text || '',
-        msg.mediaType || '',
         msg.reactions ? msg.reactions.join(' ') : ''
       ];
       csv += row.map(escapeCSV).join(',') + '\r\n';
@@ -204,8 +371,8 @@ const WACopyExporter = (function () {
   function toJSON(chatData, options = {}) {
     const exportObject = {
       exportMetadata: {
-        tool: 'WACopy Pro',
-        version: '1.0.0',
+        tool: 'Simple WhatsApp Copier (PRO+ for free)',
+        version: '1.1.0',
         exportedAt: new Date().toISOString(),
         chatTitle: chatData.chatTitle || 'Unknown Chat',
         totalMessages: chatData.messages.length,
@@ -222,6 +389,9 @@ const WACopyExporter = (function () {
         quoted: m.quoted || null,
         mediaType: m.mediaType || null,
         mediaInfo: m.mediaInfo || null,
+        mediaFile: m.mediaFile || null,
+        transcript: m.transcript || null,
+        transcriptDisclaimer: m.transcript ? 'AI-generated from voice, may contain errors' : null,
         reactions: m.reactions || []
       }))
     };
@@ -230,7 +400,8 @@ const WACopyExporter = (function () {
   }
 
   /**
-   * Format chat data into a standalone, interactive, beautiful HTML viewer with dark/light mode and search
+   * Format chat data into a standalone, interactive, beautiful HTML viewer
+   * Displays tracked images inline inside chat bubbles, plus voice transcripts with warning!
    */
   function toHTML(chatData, options = {}) {
     const title = escapeHtml(chatData.chatTitle || 'WhatsApp Chat');
@@ -240,7 +411,6 @@ const WACopyExporter = (function () {
         ? `${escapeHtml(chatData.dateRange.start)} — ${escapeHtml(chatData.dateRange.end)}`
         : 'All History';
 
-    // Unique senders for filtering
     const senders = new Set();
     chatData.messages.forEach((m) => {
       senders.add(m.isOutgoing ? 'You' : (m.sender || 'Unknown'));
@@ -249,7 +419,9 @@ const WACopyExporter = (function () {
       .map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`)
       .join('');
 
-    // Generate message items HTML
+    let imgIndex = 0;
+    let voiceIndex = 0;
+
     const messagesHtml = chatData.messages
       .map((m, idx) => {
         const isOut = m.isOutgoing;
@@ -258,6 +430,7 @@ const WACopyExporter = (function () {
         const timestamp = m.timestamp ? escapeHtml(m.timestamp) : '';
         const timeOnly = m.time ? escapeHtml(m.time) : timestamp;
 
+        // Quoted message
         let quotedHtml = '';
         if (m.quoted) {
           quotedHtml = `
@@ -268,19 +441,61 @@ const WACopyExporter = (function () {
           `;
         }
 
-        let mediaHtml = '';
-        if (m.mediaType) {
-          let mediaIcon = '📎';
-          if (m.mediaType.includes('Image')) mediaIcon = '🖼️';
-          else if (m.mediaType.includes('Voice') || m.mediaType.includes('Audio')) mediaIcon = '🎙️';
-          else if (m.mediaType.includes('Video')) mediaIcon = '🎥';
-          else if (m.mediaType.includes('Document')) mediaIcon = '📄';
-          else if (m.mediaType.includes('Sticker')) mediaIcon = '✨';
-          else if (m.mediaType.includes('Location')) mediaIcon = '📍';
+        // Tracked Inline Image
+        let imageHtml = '';
+        if (m.mediaType === 'Image') {
+          imgIndex++;
+          const imgSrc = m.dataUrl || m.mediaSrc || m.mediaFile || '';
+          if (imgSrc) {
+            imageHtml = `
+              <div class="msg-image-card">
+                <img src="${imgSrc}" alt="Shared image #${imgIndex}" class="msg-image-thumb" loading="lazy" onclick="window.open(this.src)" />
+                <span class="msg-image-badge">📷 Image #${imgIndex}</span>
+              </div>
+            `;
+          } else {
+            imageHtml = `<div class="msg-media-badge"><span class="media-icon">🖼️</span><span>Image #${imgIndex}</span></div>`;
+          }
+        }
 
-          mediaHtml = `
+        // Tracked Voice Note with Transcript & Warning
+        let voiceHtml = '';
+        if (m.mediaType && m.mediaType.includes('Voice')) {
+          voiceIndex++;
+          const dur = m.mediaInfo || '0:15';
+          voiceHtml = `
+            <div class="msg-voice-card">
+              <div class="vn-header">
+                <span class="vn-icon">🎙️</span>
+                <span class="vn-title">Voice Note #${voiceIndex}</span>
+                <span class="vn-duration">${escapeHtml(dur)}</span>
+              </div>
+              ${
+                m.transcript
+                  ? `
+                <div class="vn-transcript-box">
+                  <div class="vn-warning-tag">⚠️ Voice Note Transcript <span class="vn-disclaimer">(AI-generated from voice, may contain errors)</span>:</div>
+                  <div class="vn-text">"${escapeHtml(m.transcript)}"</div>
+                </div>
+              `
+                  : ''
+              }
+            </div>
+          `;
+        }
+
+        // Other Media Badges
+        let otherMediaHtml = '';
+        if (m.mediaType && m.mediaType !== 'Image' && !m.mediaType.includes('Voice')) {
+          let icon = '📎';
+          if (m.mediaType.includes('Video')) icon = '🎥';
+          else if (m.mediaType.includes('Document')) icon = '📄';
+          else if (m.mediaType.includes('Sticker')) icon = '✨';
+          else if (m.mediaType.includes('Location')) icon = '📍';
+
+          otherMediaHtml = `
             <div class="msg-media-badge">
-              <span class="media-icon">${mediaIcon}</span>
+              <span class="media-icon">${icon}</span>
               <span class="media-label">${escapeHtml(m.mediaType)}</span>
               ${m.mediaInfo ? `<span class="media-info">${escapeHtml(m.mediaInfo)}</span>` : ''}
             </div>
@@ -306,7 +521,9 @@ const WACopyExporter = (function () {
             <div class="msg-bubble">
               ${!isOut ? `<div class="msg-sender">${escapeHtml(senderName)}</div>` : ''}
               ${quotedHtml}
-              ${mediaHtml}
+              ${imageHtml}
+              ${voiceHtml}
+              ${otherMediaHtml}
               ${textHtml}
               <div class="msg-footer">
                 <span class="msg-time" title="${timestamp}">${timeOnly}</span>
@@ -340,6 +557,9 @@ const WACopyExporter = (function () {
       --accent: #00a884;
       --accent-hover: #06cf9c;
       --shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+      --warning-bg: #fff8e1;
+      --warning-border: #ffe082;
+      --warning-text: #8d6e63;
     }
 
     [data-theme="dark"] {
@@ -356,6 +576,9 @@ const WACopyExporter = (function () {
       --accent: #00a884;
       --accent-hover: #06cf9c;
       --shadow: 0 1px 0.5px rgba(0, 0, 0, 0.3);
+      --warning-bg: rgba(255, 193, 7, 0.12);
+      --warning-border: rgba(255, 193, 7, 0.3);
+      --warning-text: #ffca28;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -474,9 +697,7 @@ const WACopyExporter = (function () {
       outline: none;
     }
 
-    .search-input:focus {
-      border-color: var(--accent);
-    }
+    .search-input:focus { border-color: var(--accent); }
 
     .sender-select {
       background: var(--bg-chat);
@@ -499,18 +720,9 @@ const WACopyExporter = (function () {
       background-size: 20px 20px;
     }
 
-    .msg-row {
-      display: flex;
-      width: 100%;
-    }
-
-    .msg-row.msg-out {
-      justify-content: flex-end;
-    }
-
-    .msg-row.msg-in {
-      justify-content: flex-start;
-    }
+    .msg-row { display: flex; width: 100%; }
+    .msg-row.msg-out { justify-content: flex-end; }
+    .msg-row.msg-in { justify-content: flex-start; }
 
     .msg-bubble {
       max-width: 75%;
@@ -540,9 +752,7 @@ const WACopyExporter = (function () {
       margin-bottom: 4px;
     }
 
-    [data-theme="dark"] .msg-sender {
-      color: #53bdeb;
-    }
+    [data-theme="dark"] .msg-sender { color: #53bdeb; }
 
     .msg-quote {
       background: var(--quote-bg);
@@ -568,6 +778,88 @@ const WACopyExporter = (function () {
       overflow: hidden;
     }
 
+    /* Tracked Image Card */
+    .msg-image-card {
+      margin-bottom: 6px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .msg-image-thumb {
+      max-width: 100%;
+      max-height: 380px;
+      display: block;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .msg-image-thumb:hover { opacity: 0.95; }
+
+    .msg-image-badge {
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      display: inline-block;
+    }
+
+    /* Tracked Voice Note Card with Warning Banner */
+    .msg-voice-card {
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+    }
+
+    [data-theme="dark"] .msg-voice-card { background: rgba(255, 255, 255, 0.05); }
+
+    .vn-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .vn-duration {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    .vn-transcript-box {
+      background: var(--warning-bg);
+      border-left: 3px solid var(--warning-border);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .vn-warning-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--warning-text);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .vn-disclaimer {
+      font-weight: normal;
+      font-size: 10.5px;
+      opacity: 0.9;
+    }
+
+    .vn-text {
+      color: var(--text-primary);
+      font-style: italic;
+    }
+
     .msg-media-badge {
       display: inline-flex;
       align-items: center;
@@ -580,9 +872,7 @@ const WACopyExporter = (function () {
       font-weight: 500;
     }
 
-    [data-theme="dark"] .msg-media-badge {
-      background: rgba(255, 255, 255, 0.08);
-    }
+    [data-theme="dark"] .msg-media-badge { background: rgba(255, 255, 255, 0.08); }
 
     .msg-footer {
       display: flex;
@@ -596,11 +886,7 @@ const WACopyExporter = (function () {
       margin-left: 14px;
     }
 
-    .msg-status {
-      color: #53bdeb;
-      font-size: 11px;
-      font-weight: bold;
-    }
+    .msg-status { color: #53bdeb; font-size: 11px; font-weight: bold; }
 
     .msg-reactions {
       display: inline-flex;
@@ -619,12 +905,7 @@ const WACopyExporter = (function () {
 
     @media print {
       body { background: white !important; }
-      .app-container {
-        box-shadow: none !important;
-        margin: 0 !important;
-        max-width: 100% !important;
-        border-radius: 0 !important;
-      }
+      .app-container { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; border-radius: 0 !important; }
       .filter-bar, .action-btn { display: none !important; }
       .app-header { position: static !important; }
       .msg-bubble { box-shadow: none !important; border: 1px solid #ddd; }
@@ -673,19 +954,14 @@ const WACopyExporter = (function () {
       const matchCount = document.getElementById('matchCount');
       const rows = document.querySelectorAll('.msg-row');
 
-      // Theme toggle
       themeBtn.addEventListener('click', () => {
         const isDark = body.getAttribute('data-theme') === 'dark';
         body.setAttribute('data-theme', isDark ? 'light' : 'dark');
         themeBtn.textContent = isDark ? '🌙 Theme' : '☀️ Theme';
       });
 
-      // Print PDF
-      printBtn.addEventListener('click', () => {
-        window.print();
-      });
+      printBtn.addEventListener('click', () => window.print());
 
-      // Filter function
       function applyFilter() {
         const query = searchInput.value.toLowerCase().trim();
         const selectedSender = senderFilter.value;
@@ -717,23 +993,42 @@ const WACopyExporter = (function () {
   }
 
   /**
-   * Helper: Escape HTML strings
+   * Package chat and all captured media files into a ZIP archive
    */
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  async function toZIP(chatData, options = {}) {
+    const files = [];
+
+    // 1. Generate Markdown with relative media paths
+    const md = toMarkdown(chatData, { ...options, useRelativePaths: true, embedImages: false });
+    files.push({ name: 'chat.md', content: md });
+
+    // 2. Generate HTML viewer with embedded images
+    const html = toHTML(chatData, options);
+    files.push({ name: 'chat.html', content: html });
+
+    // 3. Add captured media files (images, audio)
+    let imgIdx = 0;
+    for (const msg of chatData.messages) {
+      if (msg.mediaType === 'Image' && msg.blob) {
+        imgIdx++;
+        const filename = `media/image_${imgIdx}.jpg`;
+        msg.mediaFile = filename;
+        const arrayBuf = await msg.blob.arrayBuffer();
+        files.push({ name: filename, content: new Uint8Array(arrayBuf) });
+      } else if (msg.mediaType && msg.mediaType.includes('Voice') && msg.audioBlob) {
+        const audioBuf = await msg.audioBlob.arrayBuffer();
+        files.push({ name: `media/voice_note_${msg.id || Date.now()}.ogg`, content: new Uint8Array(audioBuf) });
+      }
+    }
+
+    return createZip(files);
   }
 
   /**
-   * Browser file downloader
+   * Browser file download helper
    */
   function downloadFile(content, filename, mimeType) {
-    const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+    let blob = content instanceof Blob ? content : new Blob([content], { type: `${mimeType};charset=utf-8` });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -747,7 +1042,7 @@ const WACopyExporter = (function () {
   }
 
   /**
-   * Copy text to system clipboard
+   * Copy to clipboard
    */
   async function copyToClipboard(text) {
     try {
@@ -766,41 +1061,35 @@ const WACopyExporter = (function () {
         return success;
       }
     } catch (err) {
-      console.error('WACopy Pro: Clipboard copy failed', err);
+      console.error('WACopy Exporter: Clipboard copy failed', err);
       return false;
     }
   }
 
   /**
-   * Print PDF helper (opens styled HTML in new tab and triggers window.print())
+   * PDF printing trigger
    */
   function printPDF(chatData, options) {
     const htmlContent = toHTML(chatData, options);
-    
-    // If running in Chrome extension context, ask background worker to open print tab
+
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ action: 'OPEN_PRINT', html: htmlContent }, (response) => {
+      chrome.runtime.sendMessage({ action: 'OPEN_PRINT', html: htmlContent }, () => {
         if (chrome.runtime.lastError) {
-          // Fallback to window.open
-          openPrintWindowFallback(htmlContent);
+          openPrintFallback(htmlContent);
         }
       });
       return;
     }
 
-    openPrintWindowFallback(htmlContent);
+    openPrintFallback(htmlContent);
   }
 
-  function openPrintWindowFallback(htmlContent) {
+  function openPrintFallback(htmlContent) {
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const printWindow = window.open(url, '_blank');
     if (printWindow) {
-      printWindow.onload = function () {
-        setTimeout(() => {
-          printWindow.print();
-        }, 300);
-      };
+      printWindow.onload = () => setTimeout(() => printWindow.print(), 300);
     }
   }
 
@@ -811,13 +1100,13 @@ const WACopyExporter = (function () {
     toCSV,
     toJSON,
     toHTML,
+    toZIP,
     downloadFile,
     copyToClipboard,
     printPDF
   };
 })();
 
-// Export for ES modules or background workers if needed
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = WACopyExporter;
 }
