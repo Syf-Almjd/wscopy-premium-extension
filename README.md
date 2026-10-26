@@ -38,7 +38,7 @@
 4. If already loaded: Click **↻ (Reload)** on `Simple WhatsApp Copier`.  
    If loading fresh: Click **Load unpacked** and select:
    ```
-   /Users/saifalmajd/saif/wa-copy/aqab
+   /Users/user/Downloads/aqab
    ```
 5. Open [WhatsApp Web](https://web.whatsapp.com), click on any conversation.
 6. Click the **Simple WhatsApp Copier** icon in your Chrome toolbar to copy or export!
