@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "WACopy Pro - WhatsApp Chat Exporter & AI Copy",
+  "version": "1.0.0",
+  "description": "100% Free & Unlimited WhatsApp Web Chat Exporter. Copy to ChatGPT / Claude or export to Markdown, PDF, HTML, TXT, CSV, JSON.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "WACopy Pro",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "clipboardWrite",
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://web.whatsapp.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["exporter.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "print.html",
+        "print.js"
+      ],
+      "matches": ["https://web.whatsapp.com/*"]
+    }
+  ],
+  "commands": {
+    "toggle-panel": {
+      "suggested_key": { "default": "Alt+Shift+C" },
+      "description": "Open / close WACopy Pro modal"
+    }
+  }
+}

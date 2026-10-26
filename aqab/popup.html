@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WACopy Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Top Brand Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h1>WACopy Pro</h1>
+          <span class="pro-tag">FREE &bull; UNLIMITED</span>
+        </div>
+      </div>
+      <button class="icon-btn" id="openTabBtn" title="Open or Switch to WhatsApp Web">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Chat Status Card -->
+    <div class="status-card" id="statusCard">
+      <div class="status-indicator-dot" id="statusDot"></div>
+      <div class="status-content">
+        <div class="status-title" id="statusTitle">Connecting to WhatsApp...</div>
+        <div class="status-sub" id="statusSub">Checking active conversation</div>
+      </div>
+    </div>
+
+    <!-- Active Chat Controls (Shown when chat is open) -->
+    <div id="activeChatSection" style="display: none;">
+      <!-- Quick AI Action -->
+      <button class="primary-ai-btn" id="popupQuickCopyBtn">
+        <span class="btn-icon">📋</span>
+        <span class="btn-text">
+          <strong>Copy for ChatGPT / Claude</strong>
+          <small>Instant clean Markdown to clipboard</small>
+        </span>
+      </button>
+
+      <!-- Range Selector -->
+      <div class="field-group">
+        <label class="field-label">Message Range</label>
+        <div class="range-pills" id="popupRangePills">
+          <button class="pill-btn" data-val="visible">Visible</button>
+          <button class="pill-btn" data-val="100">100</button>
+          <button class="pill-btn active" data-val="500">500</button>
+          <button class="pill-btn" data-val="2000">2,000</button>
+          <button class="pill-btn" data-val="all">All</button>
+        </div>
+      </div>
+
+      <!-- AI Prompt Template -->
+      <div class="field-group">
+        <label class="field-label">Prepend AI Prompt</label>
+        <select class="custom-select" id="popupPromptSelect">
+          <option value="none">No Prompt (Raw Chat Only)</option>
+          <option value="summary">📝 Summarize discussion & next steps</option>
+          <option value="action_items">📋 Extract action items & assignees</option>
+          <option value="meeting_notes">📑 Convert to meeting notes</option>
+          <option value="qa_insights">💡 Key questions & answers</option>
+        </select>
+      </div>
+
+      <!-- Export Formats Grid -->
+      <div class="field-group">
+        <label class="field-label">Export File Format</label>
+        <div class="export-grid">
+          <button class="export-chip" data-fmt="md">
+            <span class="chip-icon">📝</span>
+            <span class="chip-name">Markdown</span>
+          </button>
+          <button class="export-chip" data-fmt="html">
+            <span class="chip-icon">🌐</span>
+            <span class="chip-name">HTML</span>
+          </button>
+          <button class="export-chip" data-fmt="pdf">
+            <span class="chip-icon">🖨️</span>
+            <span class="chip-name">PDF</span>
+          </button>
+          <button class="export-chip" data-fmt="txt">
+            <span class="chip-icon">📄</span>
+            <span class="chip-name">Plain Text</span>
+          </button>
+          <button class="export-chip" data-fmt="csv">
+            <span class="chip-icon">📊</span>
+            <span class="chip-name">CSV</span>
+          </button>
+          <button class="export-chip" data-fmt="json">
+            <span class="chip-icon">🗄️</span>
+            <span class="chip-name">JSON</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- In-Page Studio Launcher -->
+      <button class="secondary-btn" id="openInPageModalBtn">
+        <span>Open In-Page Studio on WhatsApp</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+          <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42 5.43 5.43H5v2z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- No Chat State -->
+    <div id="noChatSection" style="display: none;" class="empty-state">
+      <div class="empty-icon">💬</div>
+      <h3>No Active WhatsApp Chat</h3>
+      <p>Open WhatsApp Web and click any chat conversation to start exporting.</p>
+      <button class="launch-wa-btn" id="launchWhatsAppBtn">Open WhatsApp Web</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span>100% Client-Side &bull; Zero Server Uploads &bull; Private</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
