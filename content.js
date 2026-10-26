@@ -1,5 +1,5 @@
 /**
- * Simple WhatsApp Copier (PRO+ for free) - Content Script
+ * WS Copy & Export (PRO+ for free) - Content Script
  * Injected into WhatsApp Web (https://web.whatsapp.com)
  *
  * Captures all chat messages, tracked images, full documents (PDFs, Word, Excel, etc.),
@@ -12,7 +12,7 @@
   if (window.__SWC_LOADED__) return;
   window.__SWC_LOADED__ = true;
 
-  console.log('⚡ Simple WhatsApp Copier (PRO+ for free): Content script ready');
+  console.log('⚡ WS Copy & Export (PRO+ for free): Content script ready');
 
   // State
   let isScrapingActive = false;
@@ -99,7 +99,7 @@
           capturedDocsMap.set(url, entry);
           allCapturedBlobs.push(entry);
           docResolveListeners.forEach((fn) => fn(entry));
-        } catch (err) {}
+        } catch (err) { }
       }
     }
   });
@@ -134,7 +134,7 @@
     if (typeof el.click === 'function') {
       try {
         el.click();
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -920,7 +920,7 @@
       }
     } catch (err) {
       if (progress) progress.close();
-      console.error('Simple WhatsApp Copier Error:', err);
+      console.error('WS Copy & Export Error:', err);
       showToast(`Error: ${err.message}`, '❌');
     } finally {
       window.postMessage({ type: 'SWC_SET_SUPPRESS_DOWNLOAD', suppress: false }, '*');

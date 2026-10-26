@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Simple WhatsApp Copier (PRO+ for free)",
-  "short_name": "Simple WhatsApp Copier",
+  "name": "WS Copy & Export",
+  "short_name": "WS Copy",
   "version": "1.2.0",
-  "description": "Copy or export WhatsApp Web chats with tracked images, full files (PDF, Word, docs), voice note transcripts, and AI formatting. 100% free & local.",
+  "description": "Copy and export WhatsApp Web chats to Markdown, HTML, PDF and ZIP with media and voice transcripts. 100% private and client-side.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -12,7 +12,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Simple WhatsApp Copier (PRO+ for free)",
+    "default_title": "WS Copy & Export",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -37,15 +37,26 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://web.whatsapp.com/*"],
-      "js": ["interceptor.js"],
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "interceptor.js"
+      ],
       "world": "MAIN",
       "run_at": "document_start"
     },
     {
-      "matches": ["https://web.whatsapp.com/*"],
-      "js": ["exporter.js", "content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "exporter.js",
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -58,13 +69,17 @@
         "exporter.js",
         "interceptor.js"
       ],
-      "matches": ["https://web.whatsapp.com/*"]
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ]
     }
   ],
   "commands": {
     "toggle-panel": {
-      "suggested_key": { "default": "Alt+Shift+C" },
-      "description": "Toggle Simple WhatsApp Copier"
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Toggle WS Copy & Export"
     }
   }
 }

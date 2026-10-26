@@ -1,10 +1,10 @@
 /**
- * Simple WhatsApp Copier (PRO+ for free) - Background Service Worker
+ * WS Copy & Export (PRO+ for free) - Background Service Worker
  */
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('⚡ Simple WhatsApp Copier (PRO+ for free) installed!');
+    console.log('⚡ WS Copy & Export (PRO+ for free) installed!');
   }
 });
 
@@ -26,7 +26,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'toggle-panel') {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab && tab.id && tab.url && tab.url.includes('web.whatsapp.com')) {
-      chrome.tabs.sendMessage(tab.id, { action: 'OPEN_MODAL' }).catch(() => {});
+      chrome.tabs.sendMessage(tab.id, { action: 'OPEN_MODAL' }).catch(() => { });
     }
   }
 });

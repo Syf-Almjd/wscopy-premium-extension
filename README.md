@@ -1,4 +1,4 @@
-# ⚡ Simple WhatsApp Copier (PRO+ for free)
+# ⚡ WS Copy & Export (PRO+ for free)
 
 > A clean, fast, 100% free and private browser extension to copy and export WhatsApp Web chats.
 >
@@ -35,10 +35,22 @@
 1. Open **Google Chrome** (or Brave, Edge, Arc).
 2. Go to `chrome://extensions`.
 3. Enable **Developer mode** (top right).
-4. If already loaded: Click **↻ (Reload)** on `Simple WhatsApp Copier`.  
+4. If already loaded: Click **↻ (Reload)** on `WS Copy & Export`.  
    If loading fresh: Click **Load unpacked** and select:
    ```
    /Users/user/Downloads/wscopy-premium-extension
    ```
 5. Open [WhatsApp Web](https://web.whatsapp.com), click on any conversation.
-6. Click the **Simple WhatsApp Copier** icon in your Chrome toolbar to copy or export!
+6. Click the **WS Copy & Export** icon in your Chrome toolbar to copy or export!
+
+---
+
+## 📦 Packaging for Chrome Web Store
+
+To create an uploadable `.zip` archive:
+
+```bash
+zip -r wscopy-chrome-store.zip manifest.json background.js content.css content.js exporter.js interceptor.js popup.css popup.html popup.js print.html print.js icons/ -x "*.DS_Store"
+```
+
+Upload `wscopy-chrome-store.zip` directly to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).

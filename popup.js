@@ -1,5 +1,5 @@
 /**
- * Simple WhatsApp Copier (PRO+ for free) - Popup Script
+ * WS Copy & Export (PRO+ for free) - Popup Script
  * Self-contained control center: all options, exports, and copy actions run from here.
  */
 
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await chrome.scripting.insertCSS({
           target: { tabId },
           files: ['content.css']
-        }).catch(() => {});
+        }).catch(() => { });
         await new Promise((r) => setTimeout(r, 250));
         return true;
       } catch (err2) {
@@ -175,6 +175,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (openTabBtn) openTabBtn.addEventListener('click', handleOpenWhatsApp);
   if (launchWhatsAppBtn) launchWhatsAppBtn.addEventListener('click', handleOpenWhatsApp);
+
+  // Sponsor / Support links (GitHub sponsors)
+  const handleOpenSponsor = (e) => {
+    if (e) e.preventDefault();
+    chrome.tabs.create({ url: 'https://github.com/sponsors/Syf-Almjd' });
+  };
+  const sponsorBtn = document.getElementById('sponsorBtn');
+  const footerSupportBtn = document.getElementById('footerSupportBtn');
+  if (sponsorBtn) sponsorBtn.addEventListener('click', handleOpenSponsor);
+  if (footerSupportBtn) footerSupportBtn.addEventListener('click', handleOpenSponsor);
 
   // Toggle Advanced Options Accordion right in popup
   if (toggleAdvBtn) {

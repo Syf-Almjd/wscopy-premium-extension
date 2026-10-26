@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple WhatsApp Copier</title>
+  <title>WS Copy & Export</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -11,17 +11,26 @@
     <!-- Top Brand Header -->
     <header class="popup-header">
       <div class="brand">
-        <div class="brand-icon">⚡</div>
+        <img src="icons/icon48.png" width="28" height="28" class="brand-logo-img" alt="WS Copy Logo">
         <div class="brand-text">
-          <h1>Simple WhatsApp Copier</h1>
-          <span class="pro-tag">PRO+ FOR FREE</span>
+          <h1>WS Copy & Export</h1>
+          <span class="pro-tag">PRO</span>
         </div>
       </div>
-      <button class="icon-btn" id="openTabBtn" title="Open or Switch to WhatsApp Web">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-          <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
-        </svg>
-      </button>
+      <div class="header-actions">
+        <button type="button" class="icon-btn sponsor-btn" id="sponsorBtn" title="Sponsor @Syf-Almjd on GitHub" aria-label="Sponsor on GitHub">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="openTabBtn" title="Open or Switch to WhatsApp Web" aria-label="Open WhatsApp">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <!-- Chat Status Card -->
@@ -36,11 +45,16 @@
     <!-- Active Chat Controls -->
     <div id="activeChatSection" style="display: none;">
       <!-- PRIMARY ACTION: 1-Click AI Copy -->
-      <button class="primary-ai-btn" id="popupQuickCopyBtn">
-        <span class="btn-icon">📋</span>
+      <button type="button" class="primary-ai-btn" id="popupQuickCopyBtn">
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </span>
         <span class="btn-text">
           <strong>Copy for AI (ChatGPT / Claude)</strong>
-          <small>Instant clean Markdown with tracked images & voice transcripts</small>
+          <small>Instant clean Markdown with media & transcripts</small>
         </span>
       </button>
 
@@ -48,11 +62,11 @@
       <div class="field-group">
         <label class="field-label">Message Range</label>
         <div class="range-pills" id="popupRangePills">
-          <button class="pill-btn" data-val="visible">⚡ Visible</button>
-          <button class="pill-btn" data-val="100">100</button>
-          <button class="pill-btn active" data-val="500">500</button>
-          <button class="pill-btn" data-val="2000">2,000</button>
-          <button class="pill-btn" data-val="all">♾️ All</button>
+          <button type="button" class="pill-btn" data-val="visible">Visible</button>
+          <button type="button" class="pill-btn" data-val="100">100</button>
+          <button type="button" class="pill-btn active" data-val="500">500</button>
+          <button type="button" class="pill-btn" data-val="2000">2,000</button>
+          <button type="button" class="pill-btn" data-val="all">All</button>
         </div>
       </div>
 
@@ -60,37 +74,83 @@
       <div class="field-group">
         <label class="field-label">Export Format</label>
         <div class="export-grid">
-          <button class="export-chip zip-chip" data-fmt="zip" title="Export full ZIP package with chat and all images/audio files">
-            <span class="chip-icon">📦</span>
+          <button type="button" class="export-chip zip-chip" data-fmt="zip" title="Export full ZIP package with chat and all images/audio files">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </span>
             <span class="chip-name">ZIP (Chat + Media)</span>
             <span class="chip-badge">All Files</span>
           </button>
-          <button class="export-chip" data-fmt="md" title="Clean Markdown for AI, Obsidian, and Notion">
-            <span class="chip-icon">📝</span>
+          <button type="button" class="export-chip" data-fmt="md" title="Clean Markdown for AI, Obsidian, and Notion">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
             <span class="chip-name">Markdown</span>
           </button>
-          <button class="export-chip" data-fmt="html" title="Interactive offline viewer with dark mode & inline photos">
-            <span class="chip-icon">🌐</span>
+          <button type="button" class="export-chip" data-fmt="html" title="Interactive offline viewer with dark mode & inline photos">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+            </span>
             <span class="chip-name">HTML Viewer</span>
           </button>
-          <button class="export-chip" data-fmt="pdf" title="Formatted for printing or saving as PDF">
-            <span class="chip-icon">🖨️</span>
+          <button type="button" class="export-chip" data-fmt="pdf" title="Formatted for printing or saving as PDF">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+            </span>
             <span class="chip-name">PDF Print</span>
           </button>
-          <button class="export-chip" data-fmt="txt" title="Plain text log format">
-            <span class="chip-icon">📄</span>
+          <button type="button" class="export-chip" data-fmt="txt" title="Plain text log format">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="21" y1="10" x2="3" y2="10"></line>
+                <line x1="21" y1="6" x2="3" y2="6"></line>
+                <line x1="21" y1="14" x2="3" y2="14"></line>
+                <line x1="21" y1="18" x2="3" y2="18"></line>
+              </svg>
+            </span>
             <span class="chip-name">Plain Text</span>
           </button>
-          <button class="export-chip" data-fmt="csv" title="Excel / Google Sheets spreadsheet">
-            <span class="chip-icon">📊</span>
+          <button type="button" class="export-chip" data-fmt="csv" title="Excel / Google Sheets spreadsheet">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+              </svg>
+            </span>
             <span class="chip-name">CSV / Excel</span>
           </button>
         </div>
       </div>
 
       <!-- FULL OPTIONS / ADVANCED ACCORDION -->
-      <button class="advanced-toggle-btn" id="popupToggleAdvanced">
-        <span>⚙️ Full Options & Customization</span>
+      <button type="button" class="advanced-toggle-btn" id="popupToggleAdvanced">
+        <span class="toggle-btn-left">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Options & Customization</span>
+        </span>
         <span id="popupArrow">▾</span>
       </button>
 
@@ -98,7 +158,7 @@
       <div class="advanced-drawer" id="popupAdvancedDrawer">
         <!-- Images & Media Tracking -->
         <div class="drawer-section">
-          <div class="drawer-title">🖼️ Images & Files Tracking</div>
+          <div class="drawer-title">Images & Files Tracking</div>
           <div class="toggle-row">
             <span>Include all images & files in ZIP</span>
             <label class="sw-switch">
@@ -117,7 +177,7 @@
 
         <!-- Voice Notes & AI Transcription -->
         <div class="drawer-section">
-          <div class="drawer-title">🎙️ Voice Note Transcriptions</div>
+          <div class="drawer-title">Voice Note Transcriptions</div>
           <div class="toggle-row">
             <span>Transcribe voice messages & save text</span>
             <label class="sw-switch">
@@ -126,14 +186,14 @@
             </label>
           </div>
           <div class="warning-note">
-            ⚠️ Note: All transcripts include: "(AI-generated from voice, may contain errors)"
+            Transcripts note: "(AI-generated from voice, may contain errors)"
           </div>
-          <input type="password" class="custom-input" id="popGroqKey" placeholder="Optional free Groq/Whisper API key (for AI voice transcription)" />
+          <input type="password" class="custom-input" id="popGroqKey" placeholder="Optional Groq/Whisper API key for voice transcription" />
         </div>
 
         <!-- Custom Date Range -->
         <div class="drawer-section">
-          <div class="drawer-title">📅 Date Range Filter</div>
+          <div class="drawer-title">Date Range Filter</div>
           <div class="date-row">
             <input type="date" class="custom-input" id="popDateStart" placeholder="From Date" />
             <input type="date" class="custom-input" id="popDateEnd" placeholder="To Date" />
@@ -142,21 +202,21 @@
 
         <!-- Prepend AI Prompt -->
         <div class="drawer-section">
-          <div class="drawer-title">🤖 Prepend AI Prompt</div>
+          <div class="drawer-title">Prepend AI Prompt</div>
           <select class="custom-select" id="popPromptSelect">
             <option value="none">No Prompt (Raw Chat)</option>
-            <option value="summary">📝 Summarize discussion, agreements & next steps</option>
-            <option value="action_items">📋 Extract action items, tasks & deadlines</option>
-            <option value="meeting_notes">📑 Convert to formal meeting minutes</option>
-            <option value="qa_insights">💡 Key questions, answers & resources</option>
-            <option value="custom">✏️ Custom Prompt...</option>
+            <option value="summary">Summarize discussion, agreements & next steps</option>
+            <option value="action_items">Extract action items, tasks & deadlines</option>
+            <option value="meeting_notes">Convert to formal meeting minutes</option>
+            <option value="qa_insights">Key questions, answers & resources</option>
+            <option value="custom">Custom Prompt...</option>
           </select>
           <textarea class="custom-input" id="popCustomPrompt" style="display: none; height: 50px; margin-top: 4px;" placeholder="Write instructions for ChatGPT / Claude..."></textarea>
         </div>
 
         <!-- Formatting Toggles -->
         <div class="drawer-section">
-          <div class="drawer-title">⚙️ Metadata Formatting</div>
+          <div class="drawer-title">Metadata Formatting</div>
           <div class="toggle-row">
             <span>Include Timestamps</span>
             <label class="sw-switch">
@@ -188,23 +248,33 @@
         </div>
 
         <!-- Raw Developer JSON -->
-        <button class="json-export-btn" id="popBtnJson">
-          <span>🗄️ Download Raw Developer JSON (.json)</span>
+        <button type="button" class="json-export-btn" id="popBtnJson">
+          Download Raw Developer JSON (.json)
         </button>
       </div>
     </div>
 
     <!-- No Chat State -->
     <div id="noChatSection" style="display: none;" class="empty-state">
-      <div class="empty-icon">💬</div>
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
       <h3>No Active WhatsApp Chat</h3>
-      <p>Open WhatsApp Web and click any chat conversation to start copying or exporting.</p>
-      <button class="launch-wa-btn" id="launchWhatsAppBtn">Open WhatsApp Web</button>
+      <p>Open WhatsApp Web and select any conversation to copy or export.</p>
+      <button type="button" class="launch-wa-btn" id="launchWhatsAppBtn">Open WhatsApp Web</button>
     </div>
 
     <!-- Footer -->
     <footer class="popup-footer">
-      <span>100% Client-Side &bull; Tracked Images &bull; Voice Transcripts</span>
+      <span class="footer-note">Free &bull; Private &bull; 100% Client-Side</span>
+      <button type="button" class="footer-support-btn" id="footerSupportBtn" title="Support / Sponsor on GitHub">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span>Sponsor</span>
+      </button>
     </footer>
   </div>
 

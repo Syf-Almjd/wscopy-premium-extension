@@ -1,5 +1,5 @@
 /**
- * Simple WhatsApp Copier (PRO+ for free) - Main World Interceptor
+ * WS Copy & Export (PRO+ for free) - Main World Interceptor
  * Injected into the page's MAIN context (https://web.whatsapp.com)
  *
  * Responsibilities:
@@ -16,7 +16,7 @@
   if (window.__SWC_INTERCEPTOR_LOADED__) return;
   window.__SWC_INTERCEPTOR_LOADED__ = true;
 
-  console.log('⚡ Simple WhatsApp Copier: Main-world interceptor active');
+  console.log('⚡ WS Copy & Export: Main-world interceptor active');
 
   // Registry of created blobs: url -> { blob, size, type, timestamp }
   window.__swcCreatedBlobs = window.__swcCreatedBlobs || new Map();
@@ -61,7 +61,7 @@
     setTimeout(() => {
       try {
         origRevokeObjectURL.call(URL, url);
-      } catch (e) {}
+      } catch (e) { }
     }, 60000);
   };
 
@@ -130,7 +130,7 @@
         '*'
       );
       if (window.__swcSuppressDownload) {
-        return { closed: false, focus: () => {} };
+        return { closed: false, focus: () => { } };
       }
     }
     return origWindowOpen.apply(this, arguments);
@@ -161,7 +161,7 @@
             '*',
             [buf]
           );
-        } catch (err) {}
+        } catch (err) { }
       }
     }
   });

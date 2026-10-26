@@ -1,5 +1,5 @@
 /**
- * Simple WhatsApp Copier (PRO+ for free) - Exporter Module
+ * WS Copy & Export (PRO+ for free) - Exporter Module
  * Features:
  * - Markdown, HTML, PDF, TXT, CSV, JSON formatters
  * - In-place Image tracking (embed in chat, preview in HTML, bundle in ZIP)
@@ -183,7 +183,7 @@ const WACopyExporter = (function () {
       output += `- **Date Range:** ${chatData.dateRange.start} — ${chatData.dateRange.end}\n`;
     }
     output += `- **Exported At:** ${new Date().toLocaleString()}\n`;
-    output += `- **Tool:** Simple WhatsApp Copier (PRO+ for free)\n\n`;
+    output += `- **Tool:** WS Copy & Export (PRO+ for free)\n\n`;
     output += `---\n\n`;
 
     let imageCounter = 0;
@@ -379,7 +379,7 @@ const WACopyExporter = (function () {
   function toJSON(chatData, options = {}) {
     const exportObject = {
       exportMetadata: {
-        tool: 'Simple WhatsApp Copier (PRO+ for free)',
+        tool: 'WS Copy & Export (PRO+ for free)',
         version: '1.1.0',
         exportedAt: new Date().toISOString(),
         chatTitle: chatData.chatTitle || 'Unknown Chat',
@@ -478,16 +478,15 @@ const WACopyExporter = (function () {
                 <span class="vn-title">Voice Note #${voiceIndex}</span>
                 <span class="vn-duration">${escapeHtml(dur)}</span>
               </div>
-              ${
-                m.transcript
-                  ? `
+              ${m.transcript
+              ? `
                 <div class="vn-transcript-box">
                   <div class="vn-warning-tag">⚠️ Voice Note Transcript <span class="vn-disclaimer">(AI-generated from voice, may contain errors)</span>:</div>
                   <div class="vn-text">"${escapeHtml(m.transcript)}"</div>
                 </div>
               `
-                  : ''
-              }
+              : ''
+            }
             </div>
           `;
         }
@@ -752,8 +751,7 @@ const WACopyExporter = (function () {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      background-image: radial-gradient(var(--border-color) 0.75px, transparent 0.75px);
-      background-size: 20px 20px;
+      background: var(--chat-bg);
     }
 
     .msg-row { display: flex; width: 100%; }
