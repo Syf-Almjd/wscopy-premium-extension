@@ -1006,18 +1006,86 @@ const WACopyExporter = (function () {
     const html = toHTML(chatData, options);
     files.push({ name: 'chat.html', content: html });
 
-    // 3. Add captured media files (images, audio)
+    // 3. Plain text log
+    const txt = toPlainText(chatData, options);
+    files.push({ name: 'chat.txt', content: txt });
+
+    function dataUrlToBytes(dataUrl) {
+      try {
+        const base64 = dataUrl.split(',')[1];
+        const binStr = atob(base64);
+        const len = binStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binStr.charCodeAt(i);
+        }
+        return bytes;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 4. Add captured media files (images, audio, documents)
     let imgIdx = 0;
+    let voiceIdx = 0;
+    let docIdx = 0;
+
     for (const msg of chatData.messages) {
-      if (msg.mediaType === 'Image' && msg.blob) {
+      // Images
+      if (msg.mediaType === 'Image') {
         imgIdx++;
-        const filename = `media/image_${imgIdx}.jpg`;
+        const ext = msg.mimeType?.includes('png') ? 'png' : msg.mimeType?.includes('webp') ? 'webp' : 'jpg';
+        const filename = `media/image_${imgIdx}.${ext}`;
         msg.mediaFile = filename;
-        const arrayBuf = await msg.blob.arrayBuffer();
-        files.push({ name: filename, content: new Uint8Array(arrayBuf) });
-      } else if (msg.mediaType && msg.mediaType.includes('Voice') && msg.audioBlob) {
-        const audioBuf = await msg.audioBlob.arrayBuffer();
-        files.push({ name: `media/voice_note_${msg.id || Date.now()}.ogg`, content: new Uint8Array(audioBuf) });
+
+        let bytes = null;
+        if (msg.imageBytes) {
+          bytes = msg.imageBytes;
+        } else if (msg.blob) {
+          bytes = new Uint8Array(await msg.blob.arrayBuffer());
+        } else if (msg.dataUrl && msg.dataUrl.includes('base64,')) {
+          bytes = dataUrlToBytes(msg.dataUrl);
+        }
+
+        if (bytes && bytes.length > 0) {
+          files.push({ name: filename, content: bytes });
+        }
+      }
+
+      // Voice Notes / Audio
+      if (msg.mediaType && msg.mediaType.includes('Voice')) {
+        voiceIdx++;
+        const filename = `media/voice_note_${voiceIdx}.ogg`;
+        msg.mediaFile = filename;
+
+        let bytes = null;
+        if (msg.audioBytes) {
+          bytes = msg.audioBytes;
+        } else if (msg.audioBlob) {
+          bytes = new Uint8Array(await msg.audioBlob.arrayBuffer());
+        }
+
+        if (bytes && bytes.length > 0) {
+          files.push({ name: filename, content: bytes });
+        }
+      }
+
+      // Documents
+      if (msg.mediaType === 'Document') {
+        docIdx++;
+        const rawName = (msg.mediaInfo || '').replace(/[^a-zA-Z0-9._-]/g, '_') || `document_${docIdx}.pdf`;
+        const filename = `media/${rawName}`;
+
+        let bytes = null;
+        if (msg.docBytes) {
+          bytes = msg.docBytes;
+        } else if (msg.docBlob) {
+          bytes = new Uint8Array(await msg.docBlob.arrayBuffer());
+        }
+
+        if (bytes && bytes.length > 0) {
+          files.push({ name: filename, content: bytes });
+        }
       }
     }
 

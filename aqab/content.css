@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Simple WhatsApp Copier (PRO+ for free) - Content Script Styles
+   Only Overlay & Toast Styles (No page buttons injected into WhatsApp Web)
+   ========================================================================== */
+
+:root {
+  --swc-primary: #00a884;
+  --swc-primary-hover: #06cf9c;
+  --swc-primary-glow: rgba(0, 168, 132, 0.35);
+  --swc-bg: #111b21;
+  --swc-card-bg: #202c33;
+  --swc-border: #2a3942;
+  --swc-text: #e9edef;
+  --swc-text-muted: #8696a0;
+  --swc-radius: 12px;
+  --swc-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+body:not(.dark) {
+  --swc-bg: #ffffff;
+  --swc-card-bg: #f0f2f5;
+  --swc-border: #d1d7db;
+  --swc-text: #111b21;
+  --swc-text-muted: #667781;
+  --swc-shadow: 0 16px 40px rgba(11, 20, 26, 0.2);
+}
+
+/* Progress Overlay when auto-scrolling WhatsApp history */
+.swc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: swcFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes swcFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.swc-progress-card {
+  background: var(--swc-card-bg);
+  border: 1px solid var(--swc-border);
+  border-radius: var(--swc-radius);
+  box-shadow: var(--swc-shadow);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  color: var(--swc-text);
+  max-width: 320px;
+}
+
+.swc-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(0, 168, 132, 0.2);
+  border-top-color: var(--swc-primary);
+  border-radius: 50%;
+  animation: swcSpin 0.8s linear infinite;
+}
+
+@keyframes swcSpin {
+  to { transform: rotate(360deg); }
+}
+
+.swc-progress-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--swc-primary);
+}
+
+.swc-btn-stop {
+  background: var(--swc-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.swc-btn-stop:hover {
+  background: var(--swc-primary-hover);
+}
+
+/* Toast Notification (Feedback for copy / download) */
+.swc-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #111b21;
+  color: #ffffff;
+  border: 1px solid var(--swc-primary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 200000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body:not(.dark) .swc-toast {
+  background: #ffffff;
+  color: #111b21;
+}
+
+.swc-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

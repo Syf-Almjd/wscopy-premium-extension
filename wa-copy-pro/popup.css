@@ -1,5 +1,5 @@
 /* ==========================================================================
-   WACopy Pro - Extension Popup Styles
+   Simple WhatsApp Copier - Extension Popup Styles
    ========================================================================== */
 
 :root {
@@ -8,11 +8,12 @@
   --wa-green-glow: rgba(0, 168, 132, 0.35);
   --bg-primary: #111b21;
   --bg-surface: #202c33;
-  --bg-surface-hover: #2a3942;
+  --bg-surface-hover: #26353d;
   --border-color: #2a3942;
   --text-main: #e9edef;
   --text-muted: #8696a0;
   --text-dim: #667781;
+  --warning-color: #ffca28;
   --radius-sm: 8px;
   --radius-md: 12px;
 }
@@ -24,19 +25,29 @@
 }
 
 body {
-  width: 360px;
+  width: 370px;
+  max-height: 590px;
   background: var(--bg-primary);
   color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   user-select: none;
-  overflow: hidden;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for popup */
+body::-webkit-scrollbar {
+  width: 5px;
+}
+body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
 }
 
 .popup-container {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 /* Header */
@@ -65,7 +76,7 @@ body {
 }
 
 .brand-text h1 {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   letter-spacing: -0.2px;
 }
@@ -153,7 +164,7 @@ body {
   background: linear-gradient(135deg, #00a884, #057a60);
   border: none;
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 11px 13px;
   color: #ffffff;
   cursor: pointer;
   display: flex;
@@ -162,7 +173,7 @@ body {
   text-align: left;
   box-shadow: 0 4px 14px var(--wa-green-glow);
   transition: all 0.2s;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .primary-ai-btn:hover {
@@ -180,27 +191,28 @@ body {
 
 .primary-ai-btn strong {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
 }
 
 .primary-ai-btn small {
   display: block;
   font-size: 10.5px;
-  opacity: 0.85;
+  opacity: 0.88;
+  margin-top: 1px;
 }
 
 /* Field Groups */
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 5px;
+  margin-bottom: 8px;
 }
 
 .field-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
   color: var(--text-muted);
   letter-spacing: 0.5px;
@@ -218,11 +230,12 @@ body {
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   border-radius: 6px;
-  padding: 6px 0;
+  padding: 7px 0;
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
+  text-align: center;
 }
 
 .pill-btn:hover {
@@ -236,23 +249,6 @@ body {
   color: var(--wa-green);
 }
 
-/* Select */
-.custom-select {
-  width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-main);
-  padding: 7px 10px;
-  font-size: 12px;
-  outline: none;
-  cursor: pointer;
-}
-
-.custom-select:focus {
-  border-color: var(--wa-green);
-}
-
 /* Export Grid */
 .export-grid {
   display: grid;
@@ -264,7 +260,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 8px 6px;
+  padding: 9px 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -273,6 +269,7 @@ body {
   cursor: pointer;
   transition: all 0.15s;
   color: var(--text-main);
+  position: relative;
 }
 
 .export-chip:hover {
@@ -287,31 +284,178 @@ body {
 
 .export-chip .chip-name {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  text-align: center;
 }
 
-/* Secondary Button */
-.secondary-btn {
+/* Prominent ZIP chip styling */
+.export-chip.zip-chip {
+  border-color: rgba(0, 168, 132, 0.4);
+  background: linear-gradient(135deg, rgba(0, 168, 132, 0.1), var(--bg-surface));
+}
+
+.export-chip .chip-badge {
+  font-size: 8.5px;
+  color: var(--wa-green);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Full Options / Advanced Accordion Button */
+.advanced-toggle-btn {
   width: 100%;
   background: transparent;
   border: 1px dashed var(--border-color);
   color: var(--text-muted);
   border-radius: var(--radius-sm);
-  padding: 8px;
+  padding: 8px 12px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  justify-content: space-between;
   transition: all 0.2s;
   margin-top: 4px;
 }
 
-.secondary-btn:hover {
+.advanced-toggle-btn:hover {
   border-color: var(--wa-green);
   color: var(--wa-green);
   background: rgba(0, 168, 132, 0.05);
+}
+
+/* Advanced Drawer */
+.advanced-drawer {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-top: 4px;
+  animation: slideDrawer 0.2s ease forwards;
+}
+
+.advanced-drawer.open {
+  display: flex;
+}
+
+@keyframes slideDrawer {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.drawer-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.drawer-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--wa-green);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+/* Switch Controls */
+.sw-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.sw-switch input { opacity: 0; width: 0; height: 0; }
+
+.sw-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--border-color);
+  transition: 0.2s;
+  border-radius: 20px;
+}
+
+.sw-slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.sw-switch input:checked + .sw-slider { background-color: var(--wa-green); }
+.sw-switch input:checked + .sw-slider:before { transform: translateX(14px); }
+
+.warning-note {
+  font-size: 10.5px;
+  color: var(--warning-color);
+  margin: 2px 0 4px 0;
+  line-height: 1.3;
+}
+
+/* Custom Inputs */
+.custom-input, .custom-select {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  outline: none;
+}
+
+.custom-input:focus, .custom-select:focus {
+  border-color: var(--wa-green);
+}
+
+.date-row {
+  display: flex;
+  gap: 6px;
+}
+
+.json-export-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.json-export-btn:hover {
+  border-color: var(--wa-green);
+  color: var(--wa-green);
 }
 
 /* Empty State */

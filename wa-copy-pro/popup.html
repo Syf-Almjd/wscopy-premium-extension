@@ -35,78 +35,176 @@
 
     <!-- Active Chat Controls -->
     <div id="activeChatSection" style="display: none;">
-      <!-- Quick AI Action -->
+      <!-- PRIMARY ACTION: 1-Click AI Copy -->
       <button class="primary-ai-btn" id="popupQuickCopyBtn">
         <span class="btn-icon">📋</span>
         <span class="btn-text">
-          <strong>Copy for ChatGPT / Claude</strong>
-          <small>Includes tracked images & voice note transcripts</small>
+          <strong>Copy for AI (ChatGPT / Claude)</strong>
+          <small>Instant clean Markdown with tracked images & voice transcripts</small>
         </span>
       </button>
 
-      <!-- Range Selector -->
+      <!-- Message Range Pills -->
       <div class="field-group">
         <label class="field-label">Message Range</label>
         <div class="range-pills" id="popupRangePills">
-          <button class="pill-btn" data-val="visible">Visible</button>
+          <button class="pill-btn" data-val="visible">⚡ Visible</button>
           <button class="pill-btn" data-val="100">100</button>
           <button class="pill-btn active" data-val="500">500</button>
           <button class="pill-btn" data-val="2000">2,000</button>
-          <button class="pill-btn" data-val="all">All</button>
+          <button class="pill-btn" data-val="all">♾️ All</button>
         </div>
       </div>
 
-      <!-- Export Formats Grid -->
+      <!-- PRIMARY EXPORTS: Formats Grid (ZIP prominently featured) -->
       <div class="field-group">
-        <label class="field-label">Export File Format</label>
+        <label class="field-label">Export Format</label>
         <div class="export-grid">
-          <button class="export-chip" data-fmt="md">
+          <button class="export-chip zip-chip" data-fmt="zip" title="Export full ZIP package with chat and all images/audio files">
+            <span class="chip-icon">📦</span>
+            <span class="chip-name">ZIP (Chat + Media)</span>
+            <span class="chip-badge">All Files</span>
+          </button>
+          <button class="export-chip" data-fmt="md" title="Clean Markdown for AI, Obsidian, and Notion">
             <span class="chip-icon">📝</span>
             <span class="chip-name">Markdown</span>
           </button>
-          <button class="export-chip" data-fmt="html">
+          <button class="export-chip" data-fmt="html" title="Interactive offline viewer with dark mode & inline photos">
             <span class="chip-icon">🌐</span>
-            <span class="chip-name">HTML</span>
+            <span class="chip-name">HTML Viewer</span>
           </button>
-          <button class="export-chip" data-fmt="pdf">
+          <button class="export-chip" data-fmt="pdf" title="Formatted for printing or saving as PDF">
             <span class="chip-icon">🖨️</span>
-            <span class="chip-name">PDF</span>
+            <span class="chip-name">PDF Print</span>
           </button>
-          <button class="export-chip" data-fmt="zip">
-            <span class="chip-icon">📦</span>
-            <span class="chip-name">ZIP (Media)</span>
-          </button>
-          <button class="export-chip" data-fmt="txt">
+          <button class="export-chip" data-fmt="txt" title="Plain text log format">
             <span class="chip-icon">📄</span>
             <span class="chip-name">Plain Text</span>
           </button>
-          <button class="export-chip" data-fmt="csv">
+          <button class="export-chip" data-fmt="csv" title="Excel / Google Sheets spreadsheet">
             <span class="chip-icon">📊</span>
-            <span class="chip-name">CSV</span>
+            <span class="chip-name">CSV / Excel</span>
           </button>
         </div>
       </div>
 
-      <!-- In-Page Studio Launcher -->
-      <button class="secondary-btn" id="openInPageModalBtn">
-        <span>Open In-Page Studio (Full Options)</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-          <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42 5.43 5.43H5v2z"/>
-        </svg>
+      <!-- FULL OPTIONS / ADVANCED ACCORDION -->
+      <button class="advanced-toggle-btn" id="popupToggleAdvanced">
+        <span>⚙️ Full Options & Customization</span>
+        <span id="popupArrow">▾</span>
       </button>
+
+      <!-- ADVANCED DRAWER (Inside Popup) -->
+      <div class="advanced-drawer" id="popupAdvancedDrawer">
+        <!-- Images & Media Tracking -->
+        <div class="drawer-section">
+          <div class="drawer-title">🖼️ Images & Files Tracking</div>
+          <div class="toggle-row">
+            <span>Include all images & files in ZIP</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptImages" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span>Embed images inline in HTML</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptEmbed" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Voice Notes & AI Transcription -->
+        <div class="drawer-section">
+          <div class="drawer-title">🎙️ Voice Note Transcriptions</div>
+          <div class="toggle-row">
+            <span>Transcribe voice messages & save text</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptVoice" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+          <div class="warning-note">
+            ⚠️ Note: All transcripts include: "(AI-generated from voice, may contain errors)"
+          </div>
+          <input type="password" class="custom-input" id="popGroqKey" placeholder="Optional free Groq/Whisper API key (for AI voice transcription)" />
+        </div>
+
+        <!-- Custom Date Range -->
+        <div class="drawer-section">
+          <div class="drawer-title">📅 Date Range Filter</div>
+          <div class="date-row">
+            <input type="date" class="custom-input" id="popDateStart" placeholder="From Date" />
+            <input type="date" class="custom-input" id="popDateEnd" placeholder="To Date" />
+          </div>
+        </div>
+
+        <!-- Prepend AI Prompt -->
+        <div class="drawer-section">
+          <div class="drawer-title">🤖 Prepend AI Prompt</div>
+          <select class="custom-select" id="popPromptSelect">
+            <option value="none">No Prompt (Raw Chat)</option>
+            <option value="summary">📝 Summarize discussion, agreements & next steps</option>
+            <option value="action_items">📋 Extract action items, tasks & deadlines</option>
+            <option value="meeting_notes">📑 Convert to formal meeting minutes</option>
+            <option value="qa_insights">💡 Key questions, answers & resources</option>
+            <option value="custom">✏️ Custom Prompt...</option>
+          </select>
+          <textarea class="custom-input" id="popCustomPrompt" style="display: none; height: 50px; margin-top: 4px;" placeholder="Write instructions for ChatGPT / Claude..."></textarea>
+        </div>
+
+        <!-- Formatting Toggles -->
+        <div class="drawer-section">
+          <div class="drawer-title">⚙️ Metadata Formatting</div>
+          <div class="toggle-row">
+            <span>Include Timestamps</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptTime" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span>Include Sender Names</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptSender" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span>Include Quoted Replies</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptQuote" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span>Include Reactions</span>
+            <label class="sw-switch">
+              <input type="checkbox" id="popOptReact" checked>
+              <span class="sw-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Raw Developer JSON -->
+        <button class="json-export-btn" id="popBtnJson">
+          <span>🗄️ Download Raw Developer JSON (.json)</span>
+        </button>
+      </div>
     </div>
 
     <!-- No Chat State -->
     <div id="noChatSection" style="display: none;" class="empty-state">
       <div class="empty-icon">💬</div>
       <h3>No Active WhatsApp Chat</h3>
-      <p>Open WhatsApp Web and click any chat conversation to start exporting.</p>
+      <p>Open WhatsApp Web and click any chat conversation to start copying or exporting.</p>
       <button class="launch-wa-btn" id="launchWhatsAppBtn">Open WhatsApp Web</button>
     </div>
 
     <!-- Footer -->
     <footer class="popup-footer">
-      <span>100% Client-Side &bull; Images Tracked &bull; Voice Transcripts</span>
+      <span>100% Client-Side &bull; Tracked Images &bull; Voice Transcripts</span>
     </footer>
   </div>
 
